@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Income & Expenses</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById("shell").innerHTML = nav("finance") + `
+      <main class="main"><div class="container">
+        <div class="topbar"><h1>Income & Expenses</h1></div>
+        <div class="card">
+          <div class="grid-4">
+            <div class="field"><label>Entry Date</label><input id="financeDate" type="date" /></div>
+            <div class="field"><label>Type</label><select id="financeType"><option value="revenue">Revenue / Income</option><option value="expense">Expense</option></select></div>
+            <div class="field"><label>Category</label><input id="financeCategory" placeholder="Sales, rent, supplies..." /></div>
+            <div class="field"><label>Amount (₦)</label><input id="financeAmount" type="number" min="0" value="0" /></div>
+          </div>
+          <div class="grid-3" style="margin-top:10px">
+            <div class="field"><label>Payment Method</label><select id="financeMethod"><option value="cash">Cash</option><option value="transfer">Transfer</option><option value="both">Cash & Transfer</option></select></div>
+            <div class="field"><label>Description</label><input id="financeDescription" placeholder="Optional details" /></div>
+            <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="saveFinance()">Save Entry</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="grid-4">
+            <div class="field"><label>Balance Period</label><select id="financePeriod" onchange="loadFinance()"><option value="day">Day</option><option value="month">Month</option><option value="year">Year</option></select></div>
+            <div class="field"><label>Date in Period</label><input id="financeAnchor" type="date" onchange="loadFinance()" /></div>
+          </div>
+        </div>
+        <div class="grid-4" id="financeStats"></div>
+        <div class="card" style="margin-top:12px">
+          <h3 id="financePeriodLabel"></h3>
+          <table class="table"><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Method</th><th>Amount</th><th>Source</th><th>Actions</th></tr></thead>
+          <tbody id="financeRows"></tbody></table>
+        </div>
+      </main></div>`;
+
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById("financeDate").value = today;
+    document.getElementById("financeAnchor").value = today;
+
+    async function saveFinance() {
+      const entry = {
+        entry_date:document.getElementById("financeDate").value,
+        type:document.getElementById("financeType").value,
+        category:document.getElementById("financeCategory").value.trim(),
+        amount:Number(document.getElementById("financeAmount").value) || 0,
+        payment_method:document.getElementById("financeMethod").value,
+        description:document.getElementById("financeDescription").value.trim()
+      };
+      if (!entry.entry_date || !entry.category || entry.amount <= 0) {
+        alert("Enter a date, category, and amount.");
+        return;
+      }
+      await api("/api/finance", { method:"POST", body:JSON.stringify(entry) });
+      document.getElementById("financeCategory").value = "";
+      document.getElementById("financeAmount").value = "0";
+      document.getElementById("financeDescription").value = "";
+      loadFinance();
+    }
+    async function deleteFinance(id) {
+      if (!confirm("Delete this finance entry?")) return;
+      await api("/api/finance/" + id, { method:"DELETE" });
+      loadFinance();
+    }
+    async function loadFinance() {
+      const period = document.getElementById("financePeriod").value;
+      const anchor = document.getElementById("financeAnchor").value;
+      const data = await api("/api/finance?" + new URLSearchParams({ period, anchor }).toString());
+      document.getElementById("financePeriodLabel").textContent = `${period[0].toUpperCase() + period.slice(1)} balance: ${data.start} to ${data.end}`;
+      document.getElementById("financeStats").innerHTML = `
+        <div class="stat"><small>Total Revenue</small><strong>${naira(data.totalRevenue)}</strong></div>
+        <div class="stat"><small>Total Expenses</small><strong>${naira(data.totalExpenses)}</strong></div>
+        <div class="stat"><small>Net Balance</small><strong>${naira(data.netBalance)}</strong></div>
+        <div class="stat"><small>Completed Sales</small><strong>${naira(data.completedSales)}</strong></div>
+        <div class="stat"><small>Manual Income</small><strong>${naira(data.manualRevenue)}</strong></div>
+        <div class="stat"><small>Running Expenses</small><strong>${naira(data.manualExpenses)}</strong></div>
+        <div class="stat"><small>Direct Cost</small><strong>${naira(data.directCost)}</strong></div>
+        <div class="stat"><small>Coupon Payout</small><strong>${naira(data.couponPayout)}</strong></div>`;
+      document.getElementById("financeRows").innerHTML = data.entries.map(entry => `
+        <tr><td>${entry.entry_date}</td><td>${entry.type === "expense" ? "Expense" : "Revenue"}</td>
+        <td>${entry.category}</td><td>${entry.description || "-"}</td><td>${entry.payment_method}</td>
+        <td>${naira(entry.amount)}</td><td>${entry.source}</td>
+        <td>${entry.source === "manual" ? `<button class="btn btn-danger" onclick="deleteFinance(${entry.id})">Delete</button>` : ""}</td></tr>`).join("") ||
+        `<tr><td colspan="8" class="empty">No finance entries found for this period.</td></tr>`;
+    }
+    loadFinance();
+  </script>
+</body>
+</html>

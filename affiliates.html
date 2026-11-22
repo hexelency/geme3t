@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Affiliate Tracking</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById("shell").innerHTML = nav("affiliates") + `
+      <main class="main"><div class="container">
+        <div class="topbar"><h1>Affiliate Tracking</h1></div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field"><label>Name</label><input id="affiliateName" /></div>
+            <div class="field"><label>Phone</label><input id="affiliatePhone" /></div>
+            <div class="field"><label>Email</label><input id="affiliateEmail" /></div>
+          </div>
+          <div class="grid-3" style="margin-top:10px">
+            <div class="field"><label>Affiliate Tier</label><input id="affiliateTier" value="Custom Tier" placeholder="e.g. Gold, Silver, Bronze" /></div>
+            <div class="field"><label>Tier Discount (%)</label><input id="affiliateDiscount" type="number" min="0" max="100" value="0" /></div>
+            <div class="field"><label>Commission (%)</label><input id="affiliateCommission" type="number" min="0" max="100" value="0" /></div>
+          </div>
+          <div class="field" style="margin-top:10px"><label>Notes</label><input id="affiliateNotes" /></div>
+          <div style="margin-top:10px"><button class="btn btn-primary" onclick="saveAffiliate()">Save Affiliate</button></div>
+          <small id="affiliateStatus"></small>
+        </div>
+        <div class="card">
+          <input class="search" id="affiliateSearch" placeholder="Search affiliate" oninput="render()" />
+          <table class="table"><thead><tr><th>Name</th><th>Tier</th><th>Tier Discount</th><th>Commission</th><th>Phone</th><th>Coupons</th><th>Referral Count</th><th>Discount Given</th><th>Commission Earned</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="affiliateRows"></tbody></table>
+        </div>
+      </div></main>`;
+
+    let affiliates = [];
+    async function load() {
+      affiliates = await api("/api/affiliates");
+      render();
+    }
+    async function saveAffiliate(id) {
+      const name = document.getElementById("affiliateName").value.trim();
+      const phone = document.getElementById("affiliatePhone").value.trim();
+      const email = document.getElementById("affiliateEmail").value.trim();
+      const tier = document.getElementById("affiliateTier").value.trim() || "Custom";
+      const discount_pct = Math.max(0, Math.min(100, Number(document.getElementById("affiliateDiscount").value) || 0));
+      const commission_pct = Math.max(0, Math.min(100, Number(document.getElementById("affiliateCommission").value) || 0));
+      const notes = document.getElementById("affiliateNotes").value.trim();
+      const status = document.getElementById("affiliateStatus");
+      if (!name) return;
+      try {
+        if (id) await api("/api/affiliates/" + id, { method:"PATCH", body:JSON.stringify({ name, phone, email, tier, discount_pct, commission_pct, notes }) });
+        else await api("/api/affiliates", { method:"POST", body:JSON.stringify({ name, phone, email, tier, discount_pct, commission_pct, notes }) });
+        status.textContent = "";
+        document.getElementById("affiliateName").value = "";
+        document.getElementById("affiliatePhone").value = "";
+        document.getElementById("affiliateEmail").value = "";
+        document.getElementById("affiliateTier").value = "Custom Tier";
+        document.getElementById("affiliateDiscount").value = "0";
+        document.getElementById("affiliateCommission").value = "0";
+        document.getElementById("affiliateNotes").value = "";
+        document.querySelector("[onclick='saveAffiliate()']").setAttribute("onclick", "saveAffiliate()");
+        load();
+      } catch (error) {
+        status.textContent = error.message;
+        status.style.color = "var(--danger)";
+      }
+    }
+    async function deleteAffiliate(id) {
+      if (!confirm("Delete this affiliate?")) return;
+      await api("/api/affiliates/" + id, { method:"DELETE" });
+      load();
+    }
+    async function toggleAffiliate(id, active) {
+      await api("/api/affiliates/" + id, { method:"PATCH", body:JSON.stringify({ active:!active }) });
+      load();
+    }
+    function editAffiliate(affiliate) {
+      document.getElementById("affiliateName").value = affiliate.name;
+      document.getElementById("affiliatePhone").value = affiliate.phone || "";
+      document.getElementById("affiliateEmail").value = affiliate.email || "";
+      document.getElementById("affiliateTier").value = affiliate.tier || "Custom Tier";
+      document.getElementById("affiliateDiscount").value = affiliate.discount_pct || 0;
+      document.getElementById("affiliateCommission").value = affiliate.commission_pct || 0;
+      document.getElementById("affiliateNotes").value = affiliate.notes || "";
+      document.querySelector("[onclick='saveAffiliate()']").setAttribute("onclick", "saveAffiliate(" + affiliate.id + ")");
+    }
+    function render() {
+      const query = document.getElementById("affiliateSearch").value.trim().toLowerCase();
+      const rows = affiliates.filter(a => !query || a.name.toLowerCase().includes(query) || (a.tier || "").toLowerCase().includes(query) || (a.phone || "").includes(query));
+      document.getElementById("affiliateRows").innerHTML = rows.map(a => `
+        <tr><td>${a.name}</td><td><span class="badge">${a.tier || "Custom"}</span></td><td>${a.discount_pct || 0}%</td><td>${a.commission_pct || 0}%</td><td>${a.phone || "-"}</td><td>${a.coupon_count}</td>
+        <td><strong>${a.usage_count}</strong></td><td>${naira(a.customer_discount_total || 0)}</td><td><strong>${naira(a.commission_score || 0)}</strong></td><td>${a.active ? "Active" : "Inactive"}</td>
+        <td><button class="btn btn-gray" onclick='editAffiliate(${JSON.stringify(a).replace(/'/g,"&#39;")})'>Edit</button>
+        <button class="btn btn-gray" onclick="toggleAffiliate(${a.id},${!!a.active})">${a.active ? "Deactivate" : "Activate"}</button>
+        <button class="btn btn-danger" onclick="deleteAffiliate(${a.id})">Delete</button></td></tr>`).join("") ||
+        `<tr><td colspan="11" class="empty">No affiliates found.</td></tr>`;
+    }
+    load();
+  </script>
+</body>
+</html>

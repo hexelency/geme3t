@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Customers</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById("shell").innerHTML = nav("customers") + `
+      <main class="main"><div class="container">
+        <div class="topbar"><h1>Customers</h1></div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field"><label>Customer Credit % of Net Profit</label><input id="customerCreditPct" type="number" min="0" max="100" value="5" /></div>
+            <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="saveCustomerCreditSetting()">Save Credit Percentage</button></div>
+          </div>
+          <small id="customerCreditStatus"></small>
+        </div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field"><label>Customer Name</label><input id="customerName" /></div>
+            <div class="field"><label>Phone Number</label><input id="customerPhone" /></div>
+            <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button></div>
+          </div>
+          <small id="customerStatus"></small>
+        </div>
+        <div class="card">
+          <input class="search" id="customerSearch" placeholder="Search name or phone" oninput="render()" />
+          <table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Credit Coupon</th><th>Services</th><th>Service Amount</th><th>Referral Credit</th><th>Credit Score</th><th>Eligible Balance</th><th>Actions</th></tr></thead>
+          <tbody id="customerRows"></tbody></table>
+        </div>
+      </div></main>`;
+    let customers = [];
+    async function load() {
+      customers = await api("/api/customers");
+      const setting = await api("/api/settings/customer-credit");
+      document.getElementById("customerCreditPct").value = setting.customer_credit_pct;
+      render();
+    }
+    async function saveCustomerCreditSetting() {
+      const pct = Math.max(0, Math.min(100, Number(document.getElementById("customerCreditPct").value) || 0));
+      await api("/api/settings/customer-credit", { method:"PATCH", body:JSON.stringify({ customer_credit_pct:pct }) });
+      document.getElementById("customerCreditPct").value = pct;
+      document.getElementById("customerCreditStatus").textContent = "Customer credit percentage saved.";
+      document.getElementById("customerCreditStatus").style.color = "#15803d";
+    }
+    async function saveCustomer(id) {
+      const nameInput = document.getElementById("customerName");
+      const phoneInput = document.getElementById("customerPhone");
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.trim();
+      if (!name || !phone) return;
+      const status = document.getElementById("customerStatus");
+      try {
+        if (id) await api("/api/customers/" + id, { method:"PATCH", body:JSON.stringify({ name, phone }) });
+        else await api("/api/customers", { method:"POST", body:JSON.stringify({ name, phone }) });
+        status.textContent = "";
+      } catch (error) {
+        status.textContent = error.message === "Customer already exists" ? "Customer already exists." : error.message;
+        status.style.color = "var(--danger)";
+        return;
+      }
+      nameInput.value = ""; phoneInput.value = "";
+      load();
+    }
+    async function deleteCustomer(id) {
+      if (!confirm("Delete this customer?")) return;
+      await api("/api/customers/" + id, { method:"DELETE" });
+      load();
+    }
+    function render() {
+      const query = document.getElementById("customerSearch").value.toLowerCase().trim();
+      const rows = customers.filter(customer =>
+        !query || customer.name.toLowerCase().includes(query) || customer.phone.includes(query)
+      );
+      document.getElementById("customerRows").innerHTML = rows.map(customer => `
+        <tr>
+          <td>${customer.name}</td><td>${customer.phone}</td><td><span class="badge">${customer.coupon_code || "Not generated"}</span></td>
+          <td>${customer.service_count || 0}</td><td>${naira(customer.service_amount || 0)}</td><td><strong>${naira(customer.referral_credit || 0)}</strong></td><td><strong>${customer.credit_score || 0}</strong></td><td><strong>${naira(customer.credit_balance || 0)}</strong></td>
+          <td>
+            <button class="btn btn-gray" onclick="editCustomer(${customer.id}, '${customer.name.replace(/'/g,"\\'")}', '${customer.phone}')">Edit</button>
+            <button class="btn btn-danger" onclick="deleteCustomer(${customer.id})">Delete</button>
+          </td>
+        </tr>`).join("") ||                 `<tr><td colspan="9" class="empty">No customers found.</td></tr>`;
+    }
+    function editCustomer(id, name, phone) {
+      document.getElementById("customerName").value = name;
+      document.getElementById("customerPhone").value = phone;
+      document.querySelector("[onclick='saveCustomer()']").setAttribute("onclick", "saveCustomer(" + id + ")");
+    }
+    load();
+  </script>
+</body>
+</html>

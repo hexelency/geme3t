@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Coupons & Affiliates</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById("shell").innerHTML = nav("coupons") + `
+      <main class="main"><div class="container">
+        <div class="topbar"><h1>Coupons & Affiliates</h1></div>
+        <div class="card">
+          <div class="grid-4">
+            <div class="field"><label>Coupon Code</label><input id="couponCode" placeholder="Optional affiliate code" /></div>
+            <div class="field"><label>Tier Label</label><input id="couponTier" value="Custom Tier" /></div>
+            <div class="field"><label>Customer Discount (%)</label><input id="clientPct" type="number" min="0" max="100" value="0" /></div>
+            <div class="field"><label>Customer Direct Discount (₦)</label><input id="clientDirect" type="number" min="0" value="0" /></div>
+          </div>
+          <div class="grid-3" style="margin-top:10px">
+            <div class="field"><label>Affiliate Payout (%)</label><input id="affiliatePct" type="number" min="0" max="100" value="0" /></div>
+            <div class="field"><label>Applied Affiliate</label><select id="couponAffiliate" onchange="applyAffiliateTier()"><option value="">No affiliate</option></select></div>
+            <div class="field"><label>Coupon Redemption Usage Threshold</label><input id="redemptionThreshold" type="number" min="1" value="3" /></div>
+          </div>
+          <div style="margin-top:10px"><button class="btn btn-primary" id="saveCouponButton" onclick="saveCoupon()">Save Coupon</button></div>
+        </div>
+        <div class="card">
+          <input class="search" id="couponSearch" placeholder="Search coupon or tier" oninput="render()" />
+          <table class="table"><thead><tr><th>Code</th><th>Type</th><th>Tier</th><th>Customer</th><th>Affiliate</th><th>Usage</th><th>Actions</th></tr></thead>
+          <tbody id="couponRows"></tbody></table>
+        </div>
+      </div></main>`;
+    let coupons = [], affiliates = [];
+    async function load() {
+      coupons = await api("/api/coupons");
+      affiliates = await api("/api/affiliates");
+      document.getElementById("couponAffiliate").innerHTML = `<option value="">No affiliate</option>` + affiliates.map(a =>
+        `<option value="${a.id}">${a.name}</option>`).join("");
+      render();
+    }
+    function applyAffiliateTier() {
+      const id = Number(document.getElementById("couponAffiliate").value);
+      const affiliate = affiliates.find(a => a.id === id);
+      if (!affiliate) return;
+      document.getElementById("couponTier").value = affiliate.tier || "Custom";
+      document.getElementById("clientPct").value = affiliate.discount_pct || 0;
+      document.getElementById("affiliatePct").value = affiliate.commission_pct || 0;
+    }
+    async function saveCoupon(id) {
+      const code = document.getElementById("couponCode").value.trim();
+      if (!code) return;
+      const tier = document.getElementById("couponTier").value.trim() || "Custom";
+      const client_pct = Math.max(0, Math.min(100, Number(document.getElementById("clientPct").value) || 0));
+      const affiliate_pct = Math.max(0, Math.min(100, Number(document.getElementById("affiliatePct").value) || 0));
+      const client_direct = Math.max(0, Number(document.getElementById("clientDirect").value) || 0);
+      const affiliate_id = Number(document.getElementById("couponAffiliate").value) || null;
+      const redemption_threshold = Math.max(1, Number(document.getElementById("redemptionThreshold").value) || 3);
+      if (id) await api("/api/coupons/" + id, { method:"PATCH", body:JSON.stringify({ tier, client_pct, affiliate_pct, client_direct, affiliate_id, redemption_threshold }) });
+      else await api("/api/coupons", { method:"POST", body:JSON.stringify({ code, tier, client_pct, affiliate_pct, client_direct, affiliate_id, redemption_threshold, referral_only:false }) });
+      document.getElementById("couponCode").value = "";
+      document.getElementById("couponTier").value = "Custom Tier";
+      document.getElementById("clientPct").value = "0";
+      document.getElementById("affiliatePct").value = "0";
+      document.getElementById("clientDirect").value = "0";
+      document.getElementById("couponAffiliate").value = "";
+      document.getElementById("redemptionThreshold").value = "3";
+      document.getElementById("saveCouponButton").setAttribute("onclick", "saveCoupon()");
+      load();
+    }
+    async function deleteCoupon(id) {
+      if (!confirm("Delete this coupon?")) return;
+      await api("/api/coupons/" + id, { method:"DELETE" });
+      load();
+    }
+    function editCoupon(coupon) {
+      document.getElementById("couponCode").value = coupon.code;
+      document.getElementById("couponTier").value = coupon.tier;
+      document.getElementById("clientPct").value = coupon.client_pct || 0;
+      document.getElementById("affiliatePct").value = coupon.affiliate_pct || 0;
+      document.getElementById("clientDirect").value = coupon.client_direct || 0;
+      document.getElementById("couponAffiliate").value = coupon.affiliate_id || "";
+      document.getElementById("redemptionThreshold").value = coupon.redemption_threshold || 3;
+      document.getElementById("saveCouponButton").setAttribute("onclick", "saveCoupon(" + coupon.id + ")");
+    }
+    function render() {
+      const query = document.getElementById("couponSearch").value.toLowerCase().trim();
+      const rows = coupons.filter(coupon =>
+        !query || coupon.code.toLowerCase().includes(query) || coupon.tier.toLowerCase().includes(query)
+      );
+      document.getElementById("couponRows").innerHTML = rows.map(coupon => `
+        <tr>
+          <td><span class="badge">${coupon.code}</span></td>
+          <td>${coupon.referral_only ? "Customer Credit · Referral Only" : "Discount Coupon"}</td>
+          <td>${coupon.tier}</td>                    <td>${coupon.client_pct || 0}% + ₦${coupon.client_direct || 0}</td>
+          <td>${coupon.affiliate_pct || 0}%</td><td>${coupon.usage_count}</td>
+          <td><button class="btn btn-gray" onclick='editCoupon(${JSON.stringify(coupon).replace(/'/g,"&#39;")})'>Edit</button>
+          <button class="btn btn-danger" onclick="deleteCoupon(${coupon.id})">Delete</button></td>
+        </tr>`).join("") || `<tr><td colspan="7" class="empty">No coupons found.</td></tr>`;
+    }
+    load();
+  </script>
+</body>
+</html>

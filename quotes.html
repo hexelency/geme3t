@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>New Sales</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById("shell").innerHTML = nav("quotes") + `
+      <main class="main"><div class="container">
+        <div class="topbar"><h1>New Sales</h1></div>
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+          <div><h2>New Sale</h2><p style="color:var(--muted);margin:0">Select services, add a customer, and review the customer/admin breakdown.</p></div>
+          <button class="btn btn-primary" onclick="openQuoteModal()">Create New Sale</button>
+        </div>
+        <div class="card">
+          <h2>Sales History</h2>
+          <table class="table"><thead><tr><th>ID</th><th>Customer</th><th>Coupon</th><th>Gross</th><th>Payable</th><th>Net</th><th>Date</th></tr></thead><tbody id="quoteHistory"></tbody></table>
+        </div>
+      </div></main>`;
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="modal-overlay" id="quoteModal" onclick="closeOnBackdrop(event)">
+        <div class="quote-modal" role="dialog" aria-modal="true">
+          <div class="modal-head">
+            <div class="modal-title-row"><h2 id="quoteModalTitle">New Service Quote</h2><button class="btn btn-gray" onclick="closeQuoteModal()">Close</button></div>
+            <div class="modal-progress">
+              <div class="modal-step active" id="quoteStep1">1. Services</div>
+              <div class="modal-step" id="quoteStep2">2. Customer</div>
+              <div class="modal-step" id="quoteStep3">3. Breakdown</div>
+            </div>
+          </div>
+          <div class="modal-body">
+            <section class="modal-pane active" id="quotePane1">
+              <div class="topbar"><h2>Select Services</h2></div>
+              <input class="search" id="serviceSearch" placeholder="Search categories or services" oninput="renderCatalog()" />
+              <div id="catalog"></div>
+            </section>
+            <section class="modal-pane" id="quotePane2">
+              <h2>Customer & Selected Services</h2>
+              <div class="card">
+                <div class="grid-3">
+                  <div class="field"><label>Search Customer</label><input id="customerSearch" placeholder="Name or phone" oninput="searchCustomers()" /><div id="customerResults"></div></div>
+                  <div class="field"><label>New Customer Name</label><input id="newCustomerName" /></div>
+                  <div class="field"><label>New Customer Phone</label><input id="newCustomerPhone" /></div>
+                </div>
+                <div style="margin-top:8px"><button class="btn btn-primary" onclick="addNewCustomer()">Save New Customer</button></div>
+              </div>
+              <div class="card"><h3>Previously Selected Services</h3><div id="selectedItems"></div></div>
+            </section>
+            <section class="modal-pane" id="quotePane3">
+              <div class="tabs">
+                <button class="tab active" onclick="showView('customer')">Customer Breakdown</button>
+                <button class="tab" onclick="showView('admin')">Admin Breakdown</button>
+              </div>
+              <div class="card">
+                <div class="grid-3">
+                  <div class="field"><label>Optional Coupon Code</label><input id="couponCode" placeholder="Coupon / affiliate code" oninput="validateCoupon()" /><small id="couponStatus"></small></div>
+                  <div class="field"><label>Coupon Mode</label><select id="couponMode" onchange="validateCoupon()"><option value="void">Void coupon / no benefit</option><option value="retain">Retain coupon benefits</option></select></div>
+                  <div class="field"><label>Direct Discount (₦)</label><input id="directDiscount" type="number" min="0" value="0" oninput="calculate()" /></div>
+                </div>
+                <div class="grid-3" style="margin-top:10px">
+                  <div class="field"><label>Customer Discount (%)</label><input id="manualClientPct" type="number" min="0" max="100" value="0" oninput="calculate()" /></div>
+                  <div class="field"><label>Service Status</label><select id="quoteServiceStatus"><option value="pending">Pending</option><option value="completed">Completed</option></select></div>
+                </div>
+              </div>
+              <section id="customerView"><div class="card" id="customerBreakdown"></div></section>
+              <section id="adminView" style="display:none">
+                <div class="card"><div class="grid-3">
+                  <div class="field"><label>Direct Cost (₦)</label><input id="directCost" type="number" min="0" value="0" oninput="calculate()" /></div>
+                  <div class="field"><label>Customer Discount (%)</label><input id="clientPct" type="number" min="0" max="100" value="0" oninput="applyEditedCouponPct()" /></div>
+                  <div class="field"><label>Direct Coupon Discount (₦)</label><input id="couponDirect" type="number" min="0" value="0" oninput="applyEditedCouponDirect()" /></div>
+                </div></div>
+                <div class="card" id="adminBreakdown"></div>
+              </section>
+              <button class="btn btn-primary" onclick="saveQuote()">Finish & Save Quote</button>
+            </section>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-gray" id="quoteBack" onclick="quoteBack()" style="visibility:hidden">Back</button>
+            <div class="modal-footer-right">
+              <button class="btn btn-gray" onclick="closeQuoteModal()">Cancel</button>
+              <button class="btn btn-primary" id="quoteNext" onclick="quoteNext()">Next: Customer</button>
+            </div>
+          </div>
+        </div>
+      </div>`);
+
+    let catalog = [], customers = [], coupons = [], selectedCustomer = null, activeCoupon = null, selected = [];
+    let customerCreditPct = 5;
+    async function load() {
+      catalog = await api("/api/catalog");
+      customers = await api("/api/customers");
+      coupons = await api("/api/coupons");
+      const creditSetting = await api("/api/settings/customer-credit");
+      customerCreditPct = creditSetting.customer_credit_pct;
+      renderCatalog();
+      renderSelected();
+      calculate();
+      loadHistory();
+    }
+    function showView(view) {
+      document.querySelectorAll(".tab").forEach((tab, index) =>
+        tab.classList.toggle("active",
+          (view === "customer" && index === 0) ||
+          (view === "admin" && index === 1)));
+      document.getElementById("customerView").style.display = view === "customer" ? "block" : "none";
+      document.getElementById("adminView").style.display = view === "admin" ? "block" : "none";
+    }
+    async function addNewCustomer() {
+      const name = document.getElementById("newCustomerName").value.trim();
+      const phone = document.getElementById("newCustomerPhone").value.trim();
+      if (!name || !phone) {
+        alert("Enter both customer name and phone.");
+        return;
+      }
+      try {
+        const customer = await api("/api/customers", { method:"POST", body:JSON.stringify({ name, phone }) });
+        customers = await api("/api/customers");
+        coupons = await api("/api/coupons");
+        selectedCustomer = customer;
+        document.getElementById("couponCode").value = "";
+        document.getElementById("couponCode").disabled = false;
+        document.getElementById("couponMode").disabled = false;
+        document.getElementById("couponStatus").textContent = "New customer · referral coupon may be entered";
+        document.getElementById("newCustomerName").value = "";
+        document.getElementById("newCustomerPhone").value = "";
+        calculate();
+      } catch (error) {
+        alert(error.message === "Customer already exists" ? "Customer already exists." : error.message);
+      }
+    }
+    function searchCustomers() {
+      const query = document.getElementById("customerSearch").value.trim().toLowerCase();
+      const results = document.getElementById("customerResults");
+      if (!query) { results.innerHTML = ""; return; }
+      const matches = customers.filter(customer =>
+        customer.name.toLowerCase().includes(query) || customer.phone.includes(query)
+      ).slice(0, 6);
+      if (!matches.length) {
+        results.innerHTML = `<div class="empty" style="padding:8px">Searched customer not found.</div>`;
+        selectedCustomer = null;
+        return;
+      }
+      results.innerHTML = matches.map(customer =>
+        `<button class="btn btn-gray" style="margin:4px 4px 0 0" onclick='selectCustomer(${JSON.stringify(customer).replace(/'/g,"&#39;")})'>${customer.name} · ${customer.phone}</button>`
+      ).join("");
+    }
+    async function selectCustomer(customer) {
+      selectedCustomer = customer;
+      document.getElementById("customerSearch").value = customer.name + " · " + customer.phone;
+      document.getElementById("customerResults").innerHTML = "";
+      const returning = Number(customer.service_count || 0) > 0;
+      document.getElementById("couponCode").value = "";
+      document.getElementById("couponCode").disabled = returning;
+      document.getElementById("couponMode").disabled = returning;
+      document.getElementById("couponStatus").textContent = returning
+        ? "Coupon disabled for saved/returning customers"
+        : "New customer · referral coupon may be entered";
+      document.getElementById("couponStatus").style.color = "var(--muted)";
+      const previous = await api("/api/customers/" + customer.id + "/previous-items");
+      if (previous.length) {
+        selected = previous.map(item => ({ ...item, quantity:Math.max(1, Number(item.quantity) || 1) }));
+      }
+      renderCatalog();
+      renderSelected();
+      calculate();
+    }
+    function renderCatalog() {
+      const query = document.getElementById("serviceSearch").value.trim().toLowerCase();
+      const box = document.getElementById("catalog");
+      box.innerHTML = "";
+      catalog.forEach(category => {
+        const items = category.items.filter(item =>
+          !query || category.name.toLowerCase().includes(query) ||
+          item.name.toLowerCase().includes(query) || item.unit.toLowerCase().includes(query)
+        );
+        if (!items.length) return;
+        const section = document.createElement("div");
+        section.className = "category";
+        section.innerHTML = `<div class="category-head"><h3>${category.name}</h3><button class="btn btn-danger" onclick="deleteQuoteCategory(${category.id})">Delete Category</button></div>`;
+        const grid = document.createElement("div");
+        grid.className = "service-card-grid";
+        items.forEach(item => {
+          const existing = selected.find(selectedItem => selectedItem.id === item.id);
+          const count = existing ? existing.quantity : 0;
+          const card = document.createElement("div");
+          card.className = "service-card" + (count > 0 ? " selected" : "");
+          card.innerHTML = `
+            <button class="btn btn-danger" style="float:right;padding:3px 7px" onclick='removeServiceCard(${JSON.stringify(item)})'>×</button>
+            <div class="service-card-name">${item.name}</div>
+            <div class="service-card-price">${naira(item.price)} / ${item.unit}</div>
+            <div class="counter">
+              <button class="btn btn-gray" onclick='changeSelected(${JSON.stringify(item)}, -1)'>−</button>
+              <div class="counter-value">${count}</div>
+              <button class="btn btn-primary" onclick='changeSelected(${JSON.stringify(item)}, 1)'>+</button>
+            </div>`;
+          grid.appendChild(card);
+        });
+        section.appendChild(grid);
+        box.appendChild(section);
+      });
+    }
+    function changeSelected(service, change) {
+      const existing = selected.find(item => item.id === service.id);
+      if (existing) {
+        existing.quantity = Math.max(0, existing.quantity + change);
+        if (existing.quantity === 0) selected = selected.filter(item => item.id !== service.id);
+      } else if (change > 0) {
+        selected.push({ ...service, quantity:1 });
+      }
+      renderCatalog();
+      renderSelected();
+      calculate();
+    }
+    function removeServiceCard(service) {
+      selected = selected.filter(item => item.id !== service.id);
+      renderCatalog();
+      renderSelected();
+      calculate();
+    }
+    async function deleteQuoteCategory(id) {
+      if (!confirm("Delete this category and all its services?")) return;
+      await api("/api/categories/" + id, { method:"DELETE" });
+      catalog = await api("/api/catalog");
+      selected = [];
+      renderCatalog();
+      renderSelected();
+    }
+    function addSelected(service, quantity) {
+      const existing = selected.find(item => item.id === service.id);
+      if (existing) existing.quantity += Math.max(1, Number(quantity) || 1);
+      else selected.push({ ...service, quantity:Math.max(1, Number(quantity) || 1) });
+      renderSelected();
+      calculate();
+    }
+    function renderSelected() {
+      const box = document.getElementById("selectedItems");
+      if (!selected.length) { box.innerHTML = `<div class="empty">No services selected.</div>`; return; }
+      box.innerHTML = selected.map((item, index) => `
+        <div class="service-row" style="grid-template-columns:minmax(160px,1fr) 80px 90px">
+          <div><strong>${item.name}</strong><br><small>${naira(item.price)} / ${item.unit}</small></div>
+          <input type="number" min="1" value="${item.quantity}" onchange="updateQuantity(${index},this.value)" />
+          <button class="btn btn-danger" onclick="removeSelected(${index})">Remove</button>
+        </div>`).join("");
+    }
+    function updateQuantity(index, quantity) {
+      selected[index].quantity = Math.max(1, Number(quantity) || 1);
+      calculate();
+    }
+    function removeSelected(index) {
+      selected.splice(index, 1);
+      renderSelected();
+      calculate();
+    }
+    function validateCoupon() {
+      const code = document.getElementById("couponCode").value.trim().toUpperCase();
+      const mode = document.getElementById("couponMode").value;
+      const status = document.getElementById("couponStatus");
+      activeCoupon = null;
+      if (selectedCustomer && Number(selectedCustomer.service_count || 0) > 0) {
+        status.textContent = "Saved customers cannot apply coupons — credit accumulates automatically";
+        status.style.color = "var(--muted)";
+        document.getElementById("couponCode").value = "";
+        document.getElementById("clientPct").value = "0";
+        document.getElementById("couponDirect").value = "0";
+        calculate();
+        return;
+      }
+      if (!code) {
+        status.textContent = "Optional coupon not applied";
+        status.style.color = "var(--muted)";
+        document.getElementById("clientPct").value = "0";
+        document.getElementById("couponDirect").value = "0";
+        calculate();
+        return;
+      }
+      activeCoupon = coupons.find(coupon => coupon.code.toUpperCase() === code) || null;
+      if (!activeCoupon) {
+        status.textContent = "Coupon not found";
+        status.style.color = "var(--danger)";
+        calculate();
+        return;
+      }
+      if (activeCoupon.referral_only) {
+        document.getElementById("clientPct").value = activeCoupon.client_pct || 0;
+        document.getElementById("couponDirect").value = activeCoupon.client_direct || 0;
+        status.textContent = mode === "void" ? "Coupon voided · referral score will increase" : "Valid referred-customer coupon";
+      } else {
+        document.getElementById("clientPct").value = activeCoupon.client_pct || 0;
+        document.getElementById("couponDirect").value = activeCoupon.client_direct || 0;
+        status.textContent = mode === "void"
+          ? "Coupon voided · referral score will increase"
+          : "Valid coupon · " + activeCoupon.tier;
+      }
+      status.style.color = "#15803d";
+      calculate();
+    }
+    function applyEditedCouponPct() {
+      if (!activeCoupon) return;
+      activeCoupon.client_pct = Math.max(0, Math.min(100, Number(document.getElementById("clientPct").value) || 0));
+      activeCoupon.client_direct = Math.max(0, Number(document.getElementById("couponDirect").value) || 0);
+      api("/api/coupons/" + activeCoupon.id, {
+        method:"PATCH",
+        body:JSON.stringify({ client_pct:activeCoupon.client_pct, client_direct:activeCoupon.client_direct })
+      });
+      calculate();
+    }
+    function applyEditedCouponDirect() {
+      applyEditedCouponPct();
+    }
+    function calculate() {
+      const gross = selected.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const directDiscount = Math.max(0, Number(document.getElementById("directDiscount").value) || 0);
+      const mode = document.getElementById("couponMode").value;
+      const manualClientRate = Math.max(0, Math.min(100, Number(document.getElementById("manualClientPct").value) || 0)) / 100;
+      const clientRate = mode === "retain" && activeCoupon
+        ? (Number(document.getElementById("clientPct").value) || 0) / 100 : 0;
+      const couponDirect = mode === "retain" && activeCoupon
+        ? Math.max(0, Number(document.getElementById("couponDirect").value) || 0) : 0;
+      const couponDiscount = Math.min(gross, gross * clientRate + couponDirect);
+      const percentageDiscount = Math.min(gross, gross * manualClientRate);
+      const payable = Math.max(0, gross - directDiscount - percentageDiscount - couponDiscount);
+      const directCost = Math.max(0, Number(document.getElementById("directCost").value) || 0);
+      const qualifyingProfit = Math.max(0, payable - directCost);
+      const netProfit = Math.max(0, qualifyingProfit);
+      const totalDiscount = Math.min(gross, directDiscount + percentageDiscount + couponDiscount);
+      const projectedCustomerCredit = selectedCustomer
+        ? Math.round(netProfit * customerCreditPct / 100)
+        : 0;
+
+      document.getElementById("customerBreakdown").innerHTML = `
+        <h2>Customer Breakdown</h2>
+        ${selectedCustomer ? `
+          <div class="card" style="margin-bottom:10px">
+            <div class="line"><span>Customer</span><b>${selectedCustomer.name}</b></div>
+            <div class="line"><span>Phone</span><b>${selectedCustomer.phone}</b></div>
+            <div class="line"><span>Credit Coupon</span><b>${selectedCustomer.coupon_code || "-"}</b></div>
+            <div class="line"><span>Credit Balance</span><b>${naira(selectedCustomer.credit_balance || 0)}</b></div>
+            <div class="line"><span>Credit Score</span><b>${selectedCustomer.credit_score || 0}</b></div>
+            <div class="line"><span>Projected Credit (${customerCreditPct}% of net profit)</span><b>${naira(projectedCustomerCredit)}</b></div>
+            <div class="line"><span>New Eligible Balance</span><b>${naira((selectedCustomer.credit_balance || 0) + projectedCustomerCredit)}</b></div>
+          </div>` : `
+          <div class="empty" style="padding:8px">No customer selected. Select or save a customer.</div>`}
+        ${selected.map(item => {
+          const original = item.price * item.quantity;
+          const discountForItem = gross ? totalDiscount * original / gross : 0;
+          const discounted = Math.max(0, original - discountForItem);
+          return `<div class="line"><span>${item.name} × ${item.quantity}</span>
+            <b>${totalDiscount > 0 ? `<span class="original">${naira(original)}</span><span class="billable">${naira(discounted)}</span>` : naira(original)}</b></div>`;
+        }).join("")}
+        ${selected.length ? "" : `<div class="empty">No services selected.</div>`}
+        <div class="line"><span>Gross</span><b>${naira(gross)}</b></div>
+        <div class="line"><span>Direct Discount</span><b>${naira(directDiscount)}</b></div>
+        <div class="line"><span>Percentage Discount (${Math.round(manualClientRate * 100)}%)</span><b>${naira(percentageDiscount)}</b></div>
+        <div class="line"><span>Coupon Discount</span><b>${naira(couponDiscount)}</b></div>
+        <div class="line"><span><strong>Total Payable</strong></span><b>${naira(payable)}</b></div>`;
+
+      document.getElementById("adminBreakdown").innerHTML = `
+        <h2>Admin Breakdown</h2>
+        <div class="line"><span>Gross Revenue</span><b>${naira(gross)}</b></div>
+        <div class="line"><span>Direct Discount</span><b>${naira(directDiscount)}</b></div>
+        <div class="line"><span>Coupon Discount</span><b>${naira(couponDiscount)}</b></div>
+        <div class="line"><span>Payable</span><b>${naira(payable)}</b></div>
+        <div class="line"><span>Direct Cost</span><b>${naira(directCost)}</b></div>
+        <div class="line"><span>Qualifying Profit</span><b>${naira(qualifyingProfit)}</b></div>
+        <div class="line"><span><strong>Net Profit</strong></span><b>${naira(netProfit)}</b></div>`;
+    }
+    async function saveQuote() {
+      const gross = selected.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const directDiscount = Math.max(0, Number(document.getElementById("directDiscount").value) || 0);
+      const mode = document.getElementById("couponMode").value;
+      const manualClientRate = Math.max(0, Math.min(100, Number(document.getElementById("manualClientPct").value) || 0)) / 100;
+      const clientRate = mode === "retain" && activeCoupon
+        ? (Number(document.getElementById("clientPct").value) || 0) / 100 : 0;
+      const couponDirect = mode === "retain" && activeCoupon
+        ? Math.max(0, Number(document.getElementById("couponDirect").value) || 0) : 0;
+      const couponDiscount = Math.min(gross, gross * clientRate + couponDirect);
+      const percentageDiscount = Math.min(gross, gross * manualClientRate);
+      const payable = Math.max(0, gross - directDiscount - percentageDiscount - couponDiscount);
+      const directCost = Math.max(0, Number(document.getElementById("directCost").value) || 0);
+      const serviceStatus = document.getElementById("quoteServiceStatus").value;
+      await api("/api/quotes", {
+        method:"POST",
+        body:JSON.stringify({
+          customer_id:selectedCustomer ? selectedCustomer.id : null,
+          coupon_id:activeCoupon ? activeCoupon.id : null,
+          gross_total:gross,
+          direct_discount:directDiscount + percentageDiscount,
+          coupon_discount:couponDiscount,
+          payable_total:payable,
+          direct_cost:directCost,
+          status:serviceStatus,
+          items:selected.map(item => ({
+            service_id:item.id,
+            name:item.name,
+            unit:item.unit,
+            unit_price:item.price,
+            quantity:item.quantity,
+            line_total:item.price * item.quantity,
+            status:serviceStatus
+          }))
+        })
+      });
+      if (activeCoupon && mode === "retain") {
+        coupons = await api("/api/coupons");
+      }
+      alert("Quote saved.");
+      await loadHistory();
+      closeQuoteModal();
+    }
+    async function loadHistory() {
+      const quotes = await api("/api/quotes");
+      document.getElementById("quoteHistory").innerHTML = quotes.map(quote => `
+        <tr><td>${quote.id}</td><td>${quote.customer_name || "Guest"}</td><td>${quote.coupon_code || "-"}</td>
+        <td>${naira(quote.gross_total)}</td><td>${naira(quote.payable_total)}</td>
+        <td>${naira(quote.net_profit)}</td><td>${quote.created_at}</td></tr>`).join("") ||
+        `<tr><td colspan="7" class="empty">No quotes found.</td></tr>`;
+    }
+    let quoteStep = 1;
+    function openQuoteModal() {
+      selected = [];
+      selectedCustomer = null;
+      activeCoupon = null;
+      document.getElementById("couponCode").disabled = false;
+      document.getElementById("couponMode").disabled = false;
+      document.getElementById("customerSearch").value = "";
+      document.getElementById("customerResults").innerHTML = "";
+      document.getElementById("couponCode").value = "";
+      document.getElementById("couponStatus").textContent = "";
+      document.getElementById("couponMode").value = "void";
+      document.getElementById("directDiscount").value = "0";
+      document.getElementById("manualClientPct").value = "0";
+      document.getElementById("quoteServiceStatus").value = "pending";
+      document.getElementById("quoteModal").classList.add("open");
+      showQuoteStep(1);
+      renderCatalog();
+      renderSelected();
+      calculate();
+    }
+    function closeQuoteModal() {
+      document.getElementById("quoteModal").classList.remove("open");
+    }
+    function closeOnBackdrop(event) {
+      if (event.target.id === "quoteModal") closeQuoteModal();
+    }
+    function showQuoteStep(step) {
+      quoteStep = step;
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById("quotePane" + i).classList.toggle("active", i === step);
+        const progress = document.getElementById("quoteStep" + i);
+        progress.classList.toggle("active", i === step);
+        progress.classList.toggle("done", i < step);
+      }
+      document.getElementById("quoteBack").style.visibility = step === 1 ? "hidden" : "visible";
+      document.getElementById("quoteNext").textContent =
+        step === 1 ? "Next: Customer" : step === 2 ? "Next: Breakdown" : "Finish Quote";
+      if (step === 2) renderSelected();
+      if (step === 3) calculate();
+      document.querySelector(".quote-modal").scrollTop = 0;
+    }
+    function quoteNext() {
+      if (quoteStep < 3) showQuoteStep(quoteStep + 1);
+      else saveQuote();
+    }
+    function quoteBack() {
+      if (quoteStep > 1) showQuoteStep(quoteStep - 1);
+    }
+    load();
+  </script>
+</body>
+</html>

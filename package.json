@@ -1,0 +1,12 @@
+{
+  "name": "geme3t-digital-services",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.17.2"
+  }
+}

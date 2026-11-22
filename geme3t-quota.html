@@ -1,0 +1,2045 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cyber Café & Print Quote Calculator</title>
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --card: #ffffff;
+            --primary: #1e293b;
+            --accent: #2563eb;
+            --accent-soft: #eff6ff;
+            --green-soft: #ecfdf5;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            padding: 18px 14px 60px;
+            line-height: 1.45;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 999px;
+            margin-bottom: 6px;
+        }
+
+        h1 {
+            font-size: 21px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            font-size: 15px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .sub {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        @media (max-width: 600px) {
+
+            .grid-4,
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .field label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            padding: 7px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #fff;
+        }
+
+        .field input[readonly] {
+            background: #f1f5f9;
+            color: var(--muted);
+        }
+
+        .cat-box {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+        }
+
+        .cat-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .svc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+            gap: 8px;
+        }
+
+        .svc-item {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        }
+
+        .svc-item.selected {
+            background: #eff6ff;
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .svc-item.selected label {
+            color: #1d4ed8;
+        }
+
+        .svc-item label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+
+        .svc-item input {
+            width: 100%;
+            padding: 5px 7px;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .svc-add-row {
+            display: grid;
+            grid-template-columns: 34px 42px 34px;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .svc-count {
+            width: 42px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            background: #fff;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .svc-add-row .btn {
+            width: 34px;
+            height: 32px;
+            padding: 0;
+            font-size: 16px;
+        }
+
+        .add-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #cbd5e1;
+        }
+
+        .add-bar input,
+        .add-bar select {
+            padding: 7px 9px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .job-head {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .customer-entry {
+            display: flex;
+            flex: 1;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .customer-search {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) auto;
+            gap: 8px;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .customer-search input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 13px;
+        }
+
+        .catalog-search {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) auto;
+            gap: 8px;
+            margin: 8px 0 12px;
+        }
+
+        .catalog-search input {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 13px;
+        }
+
+        .customer-results {
+            grid-column: 1 / -1;
+            display: grid;
+            gap: 5px;
+        }
+
+        .customer-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 7px 9px;
+        }
+
+        .customer-result strong {
+            display: block;
+        }
+
+        .customer-result small {
+            color: var(--muted);
+        }
+
+        .customer-entry .name-in {
+            min-width: 0;
+        }
+
+        .customer-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-confirm,
+        .btn-edit-customer {
+            border: none;
+            border-radius: 6px;
+            padding: 6px 9px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .btn-confirm {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .saved-customer {
+            flex: 1;
+            background: #eff6ff;
+            border: 1px solid var(--accent);
+            border-radius: 7px;
+            padding: 7px 9px;
+        }
+
+        .saved-customer strong {
+            display: block;
+            color: var(--primary);
+        }
+
+        .finished-banner {
+            display: none;
+            background: #ecfdf5;
+            border: 1px solid #6ee7b7;
+            border-radius: 10px;
+            color: #065f46;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        .finished-banner.show {
+            display: block;
+        }
+
+        .breakdown-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .breakdown-tab {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #e2e8f0;
+            color: var(--primary);
+            padding: 9px 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .breakdown-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .breakdown-view {
+            display: none;
+        }
+
+        .breakdown-view.active {
+            display: block;
+        }
+
+        .saved-customer small {
+            color: var(--muted);
+        }
+
+        .name-in {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: var(--primary);
+        }
+
+        .btn-del {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .pill {
+            font-size: 13px;
+            color: var(--muted);
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .extra-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .extra-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .extra-row span {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .extra-row input {
+            width: 65px;
+            padding: 4px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .extra-row.selected {
+            background: #eff6ff;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+        }
+
+        .category-add {
+            margin-bottom: 8px;
+        }
+
+        .category-add label {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .custom-service input {
+            width: 100%;
+            padding: 7px 9px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .service-list-row {
+            display: grid;
+            grid-template-columns: minmax(170px, 1fr) 65px auto;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .service-list-row.selected {
+            background: #eff6ff;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+        }
+
+        .service-list-name {
+            min-width: 0;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 7px 9px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .service-list-name small {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .service-list-row input {
+            width: 65px;
+            padding: 7px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .custom-service {
+            display: grid;
+            grid-template-columns: minmax(140px, 2fr) minmax(70px, 1fr) 90px 65px auto;
+            gap: 6px;
+            align-items: center;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #cbd5e1;
+        }
+
+        .custom-service label {
+            grid-column: 1 / -1;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 600px) {
+            .category-add {
+                grid-template-columns: 1fr 65px;
+            }
+
+            .service-list-row {
+                grid-template-columns: 1fr 65px;
+            }
+
+            .service-list-row .btn,
+            .category-add .btn,
+            .custom-service .btn {
+                grid-column: 1 / -1;
+            }
+
+            .custom-service {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .lines {
+            border-top: 1px solid var(--border);
+            padding-top: 8px;
+        }
+
+        .line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            padding: 4px 0;
+        }
+
+        .line b {
+            font-weight: 600;
+        }
+
+        .j-total {
+            display: flex;
+            justify-content: space-between;
+            border-top: 2px solid var(--border);
+            margin-top: 8px;
+            padding-top: 8px;
+            font-weight: 800;
+            font-size: 16px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 13px;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-blue {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-dark {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-gray {
+            background: #e2e8f0;
+            color: var(--primary);
+        }
+
+        .grand {
+            background: var(--primary);
+            color: #fff;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .grand-amt {
+            font-size: 28px;
+            font-weight: 800;
+            color: #38bdf8;
+        }
+
+        .aff {
+            background: var(--green-soft);
+            border: 1px solid #a7f3d0;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .aff h3 {
+            font-size: 14px;
+            color: #065f46;
+            margin-bottom: 10px;
+        }
+
+        .stat {
+            background: #fff;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #d1fae5;
+        }
+
+        .stat small {
+            display: block;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .stat strong {
+            font-size: 15px;
+            color: #065f46;
+        }
+
+        .discount-summary {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        .discount-summary span {
+            background: #fff;
+            border: 1px solid #d1fae5;
+            border-radius: 7px;
+            padding: 6px 8px;
+        }
+
+        .breakdown-customer {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .breakdown-customer h3 {
+            color: var(--primary);
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .breakdown-customer .lines {
+            border-top: 0;
+        }
+
+        .discounted-price {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            white-space: nowrap;
+        }
+
+        .original-price {
+            color: #dc2626;
+            text-decoration: line-through;
+            font-weight: 600;
+        }
+
+        .billable-price {
+            color: #065f46;
+            font-weight: 800;
+        }
+
+        .customer-mapping {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .customer-mapping strong {
+            display: block;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .wizard-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(15, 23, 42, 0.72);
+        }
+
+        .wizard-overlay.open {
+            display: flex;
+        }
+
+        .wizard-modal {
+            width: min(920px, 100%);
+            max-height: calc(100vh - 36px);
+            overflow: auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.35);
+        }
+
+        .wizard-head {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 14px 18px 10px;
+        }
+
+        .wizard-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .wizard-title-row h2 {
+            margin: 0;
+        }
+
+        .wizard-progress {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .wizard-step {
+            padding: 7px 8px;
+            border-radius: 7px;
+            background: #e2e8f0;
+            color: var(--muted);
+            text-align: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .wizard-step.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .wizard-step.done {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .wizard-body {
+            padding: 18px;
+        }
+
+        .wizard-pane {
+            display: none;
+        }
+
+        .wizard-pane.active {
+            display: block;
+        }
+
+        .wizard-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px 18px;
+            border-top: 1px solid var(--border);
+            background: #fff;
+        }
+
+        .wizard-footer-right {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .note {
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 14px;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: #fff;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header & Service Rate Manager -->
+        <div class="card">
+            <div class="badge">Digital Cyber Café · Print &amp; Bind Quote</div>
+            <h1>📄 Service &amp; Print Quote</h1>
+            <p class="sub">1 B&amp;W original print + remaining copies photocopied + colour pages, binding &amp; digital
+                services</p>
+
+            <div class="actions no-print" style="margin-top:14px;margin-bottom:0;">
+                <button class="btn btn-blue" type="button" onclick="openWizard()">Create New Quote</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="wizard-overlay" id="quoteWizard" role="dialog" aria-modal="true"
+        aria-labelledby="wizardTitle" onclick="closeOnBackdrop(event)">
+        <div class="wizard-modal">
+            <div class="wizard-head">
+                <div class="wizard-title-row">
+                    <h2 id="wizardTitle">New Service Quote</h2>
+                    <button class="btn btn-gray" type="button" onclick="closeWizard()">Close</button>
+                </div>
+                <div class="wizard-progress">
+                    <div class="wizard-step active" id="progress1">1. Services</div>
+                    <div class="wizard-step" id="progress2">2. Customer</div>
+                    <div class="wizard-step" id="progress3">3. Breakdown</div>
+                </div>
+            </div>
+
+            <div class="wizard-body">
+                <section class="wizard-pane active" id="pane1">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <h2>⚙️ Service Categories &amp; Rates</h2>
+                        <button class="btn btn-gray" type="button" onclick="resetCatalog()"
+                            style="font-size:11px;padding:4px 8px;">Reset Defaults</button>
+                    </div>
+                    <div class="catalog-search">
+                        <input type="search" id="catalogSearch" placeholder="Search categories or services"
+                            oninput="renderCatalog()" />
+                        <button class="btn btn-gray" type="button" onclick="clearCatalogSearch()">Clear</button>
+                    </div>
+                    <div id="catalogContainer"></div>
+                    <div class="add-bar">
+                        <select id="newSvcCat"></select>
+                        <input type="text" id="newSvcName" placeholder="New service (e.g. Lamination A4)"
+                            style="flex:1;min-width:160px;" />
+                        <input type="text" id="newSvcUnit" placeholder="Unit (e.g. sheet)" style="width:110px;" />
+                        <input type="text" inputmode="decimal" id="newSvcPrice" placeholder="₦0"
+                            onblur="this.value=this.value ? naira(parseNaira(this.value)) : ''"
+                            style="width:100px;" />
+                        <button class="btn btn-blue" type="button" onclick="addService()">+ Add Service</button>
+                    </div>
+                    <div class="add-bar">
+                        <input type="text" id="newCatName" placeholder="New Category Name (e.g. Web & IT Support)"
+                            style="flex:1;min-width:200px;" />
+                        <button class="btn btn-dark" type="button" onclick="addCategory()">+ Add Category</button>
+                    </div>
+                </section>
+
+                <section class="wizard-pane" id="pane2">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <h2>👤 Customer &amp; Selected Services</h2>
+                    </div>
+                    <div id="customerSearchArea"></div>
+                    <div id="jobsList"></div>
+                </section>
+
+                <section class="wizard-pane" id="pane3">
+                    <h2>🧾 Final Breakdown</h2>
+                    <div class="finished-banner" id="finishedBanner">✓ Quote completed and ready to print or save.</div>
+                    <div class="grand">
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;">Grand Total</div>
+                            <div style="font-size:13px;color:#cbd5e1;" id="gSub">Customer quote</div>
+                        </div>
+                        <div class="grand-amt" id="gTotal">₦0</div>
+                    </div>
+                    <div class="breakdown-tabs no-print">
+                        <button class="breakdown-tab active" type="button" onclick="showBreakdownView('customer')">
+                            Customer Breakdown
+                        </button>
+                        <button class="breakdown-tab" type="button" onclick="showBreakdownView('admin')">
+                            Admin Breakdown
+                        </button>
+                    </div>
+                    <div class="breakdown-view active" id="customerBreakdownView">
+                        <div id="jobBreakdown"></div>
+                        <div class="customer-mapping" id="customerDiscountSummary">
+                            <strong>Customer Discount &amp; Coupon</strong>
+                            <span id="customerCouponSummary">No discount applied</span>
+                        </div>
+                    </div>
+                    <div class="breakdown-view no-print" id="adminBreakdownView">
+                        <div id="adminBreakdown"></div>
+                        <div class="aff">
+                        <h3>Discount &amp; Referral Options</h3>
+                        <div class="grid-3" style="margin-bottom:10px;">
+                            <div class="field">
+                                <label>Coupon Code</label>
+                                <input type="text" id="aCode" value=""
+                                    placeholder="Optional coupon / affiliate code"
+                                    oninput="validateCoupon(false)" />
+                                <small id="aCouponStatus" style="display:block;margin-top:4px;color:var(--muted);"></small>
+                            </div>
+                            <div class="field"><label>Direct Cost (₦)</label><input type="text" inputmode="decimal"
+                                    id="pCost" value="₦10,000"
+                                    onfocus="this.value=parseNaira(this.value)"
+                                    onblur="this.value=naira(parseNaira(this.value))"
+                                    oninput="calc()" /></div>
+                            <div class="field">
+                                <label>Validated Tier</label>
+                                <input type="text" id="aTierDisplay" value="No coupon" readonly />
+                            </div>
+                        </div>
+                        <div class="grid-3" style="margin-bottom:10px;">
+                            <div class="field"><label>Register Coupon Code</label><input type="text" id="newCouponCode"
+                                    placeholder="e.g. FRIEND25" /></div>
+                            <div class="field">
+                                <label>Tier / Referral Label</label>
+                                <input type="text" id="newCouponTier" value="Tier 1"
+                                    placeholder="e.g. Tier 1" />
+                            </div>
+                            <div class="field">
+                                <label>Customer Discount (%)</label>
+                                <input type="number" id="newCouponClientPct" value="10" min="0" max="100" />
+                            </div>
+                        </div>
+                        <div class="grid-3" style="margin-bottom:10px;">
+                            <div class="field">
+                                <label>Affiliate Payout (%)</label>
+                                <input type="number" id="newCouponAffiliatePct" value="15" min="0" max="100" />
+                            </div>
+                            <div class="field">
+                                <label>Active Coupon Customer Discount (%)</label>
+                                <input type="number" id="activeCouponClientPct" value="0" min="0" max="100"
+                                    oninput="saveActiveCouponPercentages()" />
+                            </div>
+                            <div class="field">
+                                <label>Active Coupon Affiliate Payout (%)</label>
+                                <input type="number" id="activeCouponAffiliatePct" value="0" min="0" max="100"
+                                    oninput="saveActiveCouponPercentages()" />
+                            </div>
+                        </div>
+                        <div class="actions no-print" style="margin:0 0 10px;">
+                            <button class="btn btn-blue" type="button" onclick="registerCoupon()">Register Coupon</button>
+                        </div>
+                        <div class="grid-3" style="margin-bottom:10px;">
+                            <div class="field">
+                                <label>Discount Type</label>
+                                <select id="discountType" onchange="calc()">
+                                    <option value="fixed">Fixed amount (₦)</option>
+                                    <option value="percent">Percentage (%)</option>
+                                </select>
+                            </div>
+                            <div class="field"><label>Direct Discount</label><input type="text" inputmode="decimal"
+                                    id="directDiscount" value="₦0"
+                                    onfocus="this.value=parseNaira(this.value)"
+                                    onblur="this.value=naira(parseNaira(this.value))"
+                                    oninput="calc()" /></div>
+                            <div class="field">
+                                <label>Referral Coupon</label>
+                                <select id="couponMode" onchange="validateCoupon(true)">
+                                    <option value="void" selected>Void coupon / no affiliate benefit</option>
+                                    <option value="retain">Retain coupon benefits</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid-4">
+                            <div class="stat"><small>Qualifying Profit</small><strong id="sProf">₦0</strong></div>
+                            <div class="stat"><small>Client Discount</small><strong id="sDisc">₦0</strong></div>
+                            <div class="stat"><small>Affiliate Payout</small><strong id="sPay">₦0</strong></div>
+                            <div class="stat"><small>Your Net Profit</small><strong id="sNet">₦0</strong></div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="actions no-print" style="margin-top:12px;">
+                        <button class="btn btn-dark" type="button" onclick="window.print()">🖨 Print / Save PDF Quote</button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="wizard-footer">
+                <button class="btn btn-gray" type="button" id="wizardBack" onclick="wizardBack()">Back</button>
+                <div class="wizard-footer-right">
+                    <button class="btn btn-gray" type="button" onclick="closeWizard()">Cancel</button>
+                    <button class="btn btn-blue" type="button" id="wizardNext" onclick="wizardNext()">Next: Customer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var DEFAULT_CATALOG = [
+            {
+                id: "cat_print",
+                name: "Print & Bind",
+                locked: true,
+                items: [
+                    { id: "bw", name: "B&W Print", unit: "page", price: 100, core: true },
+                    { id: "col", name: "Colour Page", unit: "page", price: 200, core: true },
+                    { id: "copy", name: "Photocopy", unit: "page", price: 50, core: true },
+                    { id: "bind", name: "Hard Binding", unit: "copy", price: 3000, core: true },
+                    { id: "spiral", name: "Spiral Binding", unit: "copy", price: 700 },
+                    { id: "lam_a4", name: "Lamination (A4)", unit: "sheet", price: 300 },
+                    { id: "lam_id", name: "ID Card Lamination", unit: "card", price: 200 }
+                ]
+            },
+            {
+                id: "cat_typing",
+                name: "Typing & Document Services",
+                items: [
+                    { id: "type", name: "Typesetting / Typing", unit: "page", price: 300 },
+                    { id: "scan", name: "Document Scanning", unit: "page", price: 150 },
+                    { id: "cv", name: "CV / Resume Formatting", unit: "doc", price: 2000 },
+                    { id: "pdf_edit", name: "PDF Conversion / Merge", unit: "file", price: 500 }
+                ]
+            },
+            {
+                id: "cat_portal",
+                name: "Online Registrations & Portal",
+                items: [
+                    { id: "jamb", name: "JAMB / Post-UTME Reg", unit: "form", price: 1500 },
+                    { id: "nin", name: "NIN / BVN Slip Reprint", unit: "slip", price: 1000 },
+                    { id: "remita", name: "Remita / School Portal Pay", unit: "txn", price: 1000 },
+                    { id: "cac", name: "CAC Business Name Filing", unit: "filing", price: 15000 }
+                ]
+            },
+            {
+                id: "cat_design",
+                name: "Graphic Design & Branding",
+                items: [
+                    { id: "flyer", name: "Flyer / E-Poster Design", unit: "design", price: 5000 },
+                    { id: "logo", name: "Logo Design", unit: "design", price: 15000 },
+                    { id: "passport", name: "Passport Photo (4 copies)", unit: "set", price: 1000 }
+                ]
+            }
+        ];
+        var catalog = JSON.parse(localStorage.getItem("cyber_catalog_v1")) || JSON.parse(JSON.stringify(DEFAULT_CATALOG));
+        var jobs = [
+            { name: "", phone: "", draftName: "", draftPhone: "", stage: "name", saved: false, total: 0, col: 0, copies: 0, extras: [] }
+        ];
+        var customerDirectory = JSON.parse(localStorage.getItem("cyber_customers_v1")) || [];
+        var couponDirectory = JSON.parse(localStorage.getItem("cyber_coupons_v1")) || [];
+        couponDirectory = couponDirectory.filter(function (coupon) {
+            return coupon && (coupon.code || "").trim();
+        });
+        couponDirectory.forEach(function (coupon) {
+            if (coupon.referralOnly || coupon.tier === "customer") {
+                coupon.clientPct = 0;
+                coupon.affiliatePct = 0;
+            } else if (coupon.clientPct === undefined || coupon.affiliatePct === undefined) {
+                if (coupon.tier === "1") {
+                    coupon.clientPct = 10;
+                    coupon.affiliatePct = 15;
+                } else if (coupon.tier === "2") {
+                    coupon.clientPct = 10;
+                    coupon.affiliatePct = 20;
+                } else if (coupon.tier === "3") {
+                    coupon.clientPct = 15;
+                    coupon.affiliatePct = 25;
+                } else {
+                    coupon.clientPct = 0;
+                    coupon.affiliatePct = 0;
+                }
+            }
+        });
+        var quoteCouponRecorded = false;
+
+        function getCouponTierPcts(tier) {
+            if (tier === "customer") return [0, 0];
+            if (tier && typeof tier === "object") {
+                return [
+                    (Number(tier.clientPct) || 0) / 100,
+                    (Number(tier.affiliatePct) || 0) / 100
+                ];
+            }
+            if (tier === "1") return [0.10, 0.15];
+            if (tier === "2") return [0.10, 0.20];
+            return [0.15, 0.25];
+        }
+        function getCouponTierLabel(tier) {
+            if (tier === "customer") return "Customer Credit Coupon · Referral Only";
+            if (tier && typeof tier === "object") {
+                return tier.label || "Custom Coupon Tier";
+            }
+            if (tier !== "1" && tier !== "2" && tier !== "3") {
+                return tier || "Custom Coupon Tier";
+            }
+            if (tier === "1") return "Tier 1 · 25%";
+            if (tier === "2") return "Tier 2 · 30%";
+            return "Tier 3 · 40%";
+        }
+        function generateCustomerCoupon(name, phone) {
+            var letters = (name || "").toUpperCase().replace(/[^A-Z]/g, "");
+            var digits = (phone || "").replace(/\D/g, "");
+            var base = (letters.slice(0, 4) + digits.slice(-4)).replace(/[^A-Z0-9]/g, "");
+            var randomSeed = digits + Date.now().toString().slice(-4);
+            var randomChars = "";
+            var alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            for (var i = 0; i < randomSeed.length && randomChars.length < 2; i++) {
+                randomChars += alphabet[(Number(randomSeed.charAt(i)) * 7 + i * 3) % alphabet.length];
+            }
+            var code = (base + randomChars).toUpperCase().slice(0, 9);
+            while (code.length < 9) code += alphabet[(code.length * 5) % alphabet.length];
+            while (couponDirectory.some(function (coupon) {
+                return (coupon.code || "").toUpperCase() === code;
+            })) {
+                code = (base + alphabet[Math.floor(Math.random() * alphabet.length)] +
+                    alphabet[Math.floor(Math.random() * alphabet.length)])
+                    .toUpperCase().slice(0, 9);
+                while (code.length < 9) code += alphabet[(code.length * 3) % alphabet.length];
+            }
+            return code;
+        }
+        function findActiveCoupon() {
+            var code = (document.getElementById("aCode").value || "").trim().toUpperCase();
+            for (var i = 0; i < couponDirectory.length; i++) {
+                if ((couponDirectory[i].code || "").toUpperCase() === code) return couponDirectory[i];
+            }
+            return null;
+        }
+        function validateCoupon(updateBreakdown) {
+            var couponMode = document.getElementById("couponMode").value;
+            var status = document.getElementById("aCouponStatus");
+            var tierDisplay = document.getElementById("aTierDisplay");
+            var clientPct = document.getElementById("activeCouponClientPct");
+            var affiliatePct = document.getElementById("activeCouponAffiliatePct");
+            var code = (document.getElementById("aCode").value || "").trim();
+            if (!code) {
+                status.textContent = "Optional — no coupon applied";
+                status.style.color = "var(--muted)";
+                tierDisplay.value = "No coupon";
+                clientPct.value = "0";
+                affiliatePct.value = "0";
+                if (updateBreakdown) calc();
+                return null;
+            }
+            if (couponMode === "void") {
+                status.textContent = "Coupon voided — benefits not applied";
+                status.style.color = "#dc2626";
+                tierDisplay.value = "No active tier";
+                if (updateBreakdown) calc();
+                return null;
+            }
+            var coupon = findActiveCoupon();
+            if (!coupon) {
+                status.textContent = "Coupon not found — benefits not applied";
+                status.style.color = "#dc2626";
+                tierDisplay.value = "Invalid coupon";
+                if (updateBreakdown) calc();
+                return null;
+            }
+            coupon.usage = Number(coupon.usage) || 0;
+            if (coupon.referralOnly || coupon.tier === "customer") {
+                status.textContent =
+                    "Valid customer credit coupon · Referral Only · Used " +
+                    coupon.usage + " times";
+                status.style.color = "#15803d";
+                tierDisplay.value = "Referral points only";
+                clientPct.value = "0";
+                affiliatePct.value = "0";
+                if (updateBreakdown) calc();
+                return coupon;
+            }
+            status.textContent =
+                "Valid coupon · " + getCouponTierLabel(coupon.tier) +
+                " · Used " + coupon.usage + " times";
+            status.style.color = "#15803d";
+            tierDisplay.value = getCouponTierLabel(coupon.tier);
+            clientPct.value = Number(coupon.clientPct) || 0;
+            affiliatePct.value = Number(coupon.affiliatePct) || 0;
+            if (updateBreakdown) calc();
+            return coupon;
+        }
+        function registerCoupon() {
+            var codeInput = document.getElementById("newCouponCode");
+            var code = codeInput.value.trim().toUpperCase();
+            if (!code) return;
+            var existing = couponDirectory.find(function (coupon) {
+                return (coupon.code || "").toUpperCase() === code;
+            });
+            var tierLabel = document.getElementById("newCouponTier").value.trim() || "Custom Tier";
+            var clientPct = Math.max(0, Math.min(100, Number(document.getElementById("newCouponClientPct").value) || 0));
+            var affiliatePct = Math.max(0, Math.min(100, Number(document.getElementById("newCouponAffiliatePct").value) || 0));
+            if (existing) {
+                existing.tier = tierLabel;
+                existing.clientPct = clientPct;
+                existing.affiliatePct = affiliatePct;
+            } else {
+                couponDirectory.push({
+                    code: code,
+                    tier: tierLabel,
+                    clientPct: clientPct,
+                    affiliatePct: affiliatePct,
+                    usage: 0
+                });
+            }
+            localStorage.setItem("cyber_coupons_v1", JSON.stringify(couponDirectory));
+            codeInput.value = "";
+            document.getElementById("aCode").value = code;
+            validateCoupon(true);
+        }
+        function saveActiveCouponPercentages() {
+            var coupon = findActiveCoupon();
+            if (!coupon || coupon.referralOnly || coupon.tier === "customer") return;
+            coupon.clientPct = Math.max(0, Math.min(100,
+                Number(document.getElementById("activeCouponClientPct").value) || 0));
+            coupon.affiliatePct = Math.max(0, Math.min(100,
+                Number(document.getElementById("activeCouponAffiliatePct").value) || 0));
+            localStorage.setItem("cyber_coupons_v1", JSON.stringify(couponDirectory));
+            var tierDisplay = document.getElementById("aTierDisplay");
+            if (tierDisplay) {
+                tierDisplay.value =
+                    (coupon.tier || "Custom Tier") +
+                    " · " + coupon.clientPct + "% / " + coupon.affiliatePct + "%";
+            }
+            calc();
+        }
+        function saveCatalog() {
+            localStorage.setItem("cyber_catalog_v1", JSON.stringify(catalog));
+        }
+        function resetCatalog() {
+            catalog = JSON.parse(JSON.stringify(DEFAULT_CATALOG));
+            saveCatalog();
+            renderCatalog();
+            renderCustomerSearch();
+            renderJobs();
+        }
+        function naira(v) {
+            return "₦" + Math.round(v).toLocaleString("en-NG");
+        }
+        function parseNaira(v) {
+            return Math.max(0, Number(String(v).replace(/[₦,\s]/g, "")) || 0);
+        }
+        function getRate(id) {
+            for (var c = 0; c < catalog.length; c++) {
+                for (var i = 0; i < catalog[c].items.length; i++) {
+                    if (catalog[c].items[i].id === id) return Number(catalog[c].items[i].price) || 0;
+                }
+            }
+            return 0;
+        }
+        function getServiceById(id) {
+            for (var c = 0; c < catalog.length; c++) {
+                for (var i = 0; i < catalog[c].items.length; i++) {
+                    if (catalog[c].items[i].id === id) return catalog[c].items[i];
+                }
+            }
+            return null;
+        }
+        function el(tag, cls, text) {
+            var node = document.createElement(tag);
+            if (cls) node.className = cls;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        }
+        function renderCatalog() {
+            var box = document.getElementById("catalogContainer");
+            var catSel = document.getElementById("newSvcCat");
+            box.innerHTML = "";
+            catSel.innerHTML = "";
+            var searchInput = document.getElementById("catalogSearch");
+            var query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+            var visibleCategories = 0;
+            catalog.forEach(function (cat, cIdx) {
+                var opt = document.createElement("option");
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                catSel.appendChild(opt);
+                var categoryMatches = cat.name.toLowerCase().indexOf(query) >= 0;
+                var matchingItems = cat.items.filter(function (svc) {
+                    return !query ||
+                        categoryMatches ||
+                        svc.name.toLowerCase().indexOf(query) >= 0 ||
+                        svc.unit.toLowerCase().indexOf(query) >= 0;
+                });
+                if (query && matchingItems.length === 0) return;
+                visibleCategories++;
+                var cDiv = el("div", "cat-box");
+                var head = el("div", "cat-title");
+                head.appendChild(el("span", "", cat.name));
+                var delCat = el("button", "btn-del", "Delete Category");
+                delCat.type = "button";
+                delCat.style.padding = "1px 6px";
+                delCat.style.fontSize = "10px";
+                delCat.onclick = function () {
+                    if (window.confirm('Delete the "' + cat.name + '" category and all its services?')) {
+                        catalog.splice(cIdx, 1);
+                        saveCatalog();
+                        renderCatalog();
+                        renderJobs();
+                    }
+                };
+                head.appendChild(delCat);
+                cDiv.appendChild(head);
+                var grid = el("div", "svc-grid");
+                matchingItems.forEach(function (svc) {
+                    var sIdx = cat.items.indexOf(svc);
+                    var item = el("div", "svc-item");
+                    var activeJob = jobs[0];
+                    var isSelected = activeJob && activeJob.extras.some(function (ex) {
+                        return ex.svcId === svc.id;
+                    });
+                    if (isSelected) item.classList.add("selected");
+                    var lbl = el("label");
+                    lbl.appendChild(el("span", "", svc.name + " (/" + svc.unit + ")"));
+                    var rm = el("span", "", "Dismiss");
+                    rm.style.color = "#dc2626";
+                    rm.style.cursor = "pointer";
+                    rm.style.fontSize = "10px";
+                    rm.title = "Delete this service";
+                    rm.onclick = function () {
+                        if (window.confirm('Delete "' + svc.name + '" from this category?')) {
+                            cat.items.splice(sIdx, 1);
+                            saveCatalog();
+                            renderCatalog();
+                            renderJobs();
+                        }
+                    };
+                    lbl.appendChild(rm);
+                    item.appendChild(lbl);
+                    var inp = document.createElement("input");
+                    inp.type = "text";
+                    inp.inputMode = "decimal";
+                    inp.value = naira(svc.price);
+                    inp.onfocus = function () {
+                        this.value = parseNaira(this.value);
+                    };
+                    inp.oninput = function () {
+                        svc.price = parseNaira(this.value);
+                        saveCatalog();
+                        calc();
+                    };
+                    inp.onblur = function () {
+                        this.value = naira(svc.price);
+                    };
+                    item.appendChild(inp);
+                    var addRow = el("div", "svc-add-row");
+                    var existing = activeJob && activeJob.extras.find(function (ex) {
+                        return ex.svcId === svc.id;
+                    });
+                    var count = existing ? Math.max(0, Number(existing.qty) || 0) : 0;
+                    var decreaseBtn = el("button", "btn btn-gray", "−");
+                    decreaseBtn.type = "button";
+                    var countOut = el("span", "svc-count", String(count));
+                    var addBtn = el("button", "btn btn-blue", "+");
+                    addBtn.type = "button";
+                    decreaseBtn.onclick = function () {
+                        var job = jobs[0] || {
+                            name: "", phone: "", draftName: "", draftPhone: "",
+                            stage: "name", saved: false, total: 0, col: 0, copies: 0, extras: []
+                        };
+                        if (!jobs[0]) jobs.push(job);
+                        var selected = job.extras.find(function (ex) {
+                            return ex.svcId === svc.id;
+                        });
+                        if (selected) {
+                            selected.qty = Math.max(0, (Number(selected.qty) || 0) - 1);
+                            if (selected.qty === 0) {
+                                job.extras = job.extras.filter(function (ex) {
+                                    return ex.svcId !== svc.id;
+                                });
+                            }
+                        }
+                        renderCatalog();
+                        renderJobs();
+                        calc();
+                    };
+                    addBtn.onclick = function () {
+                        var job = jobs[0] || {
+                            name: "", phone: "", draftName: "", draftPhone: "",
+                            stage: "name", saved: false, total: 0, col: 0, copies: 0, extras: []
+                        };
+                        if (!jobs[0]) jobs.push(job);
+                        var selected = job.extras.find(function (ex) {
+                            return ex.svcId === svc.id;
+                        });
+                        if (selected) {
+                            selected.qty = (Number(selected.qty) || 0) + 1;
+                        } else {
+                            job.extras.push({ svcId: svc.id, qty: 1 });
+                        }
+                        renderCatalog();
+                        renderJobs();
+                        calc();
+                    };
+                    addRow.appendChild(decreaseBtn);
+                    addRow.appendChild(countOut);
+                    addRow.appendChild(addBtn);
+                    item.appendChild(addRow);
+                    grid.appendChild(item);
+                });
+                cDiv.appendChild(grid);
+                box.appendChild(cDiv);
+            });
+            if (query && visibleCategories === 0) {
+                box.appendChild(el("p", "pill", "No categories or services found."));
+            }
+        }
+        function clearCatalogSearch() {
+            var searchInput = document.getElementById("catalogSearch");
+            if (searchInput) searchInput.value = "";
+            renderCatalog();
+        }
+        function addCategory() {
+            var inp = document.getElementById("newCatName");
+            var name = inp.value.trim();
+            if (!name) return;
+            catalog.push({ id: "cat_" + Date.now(), name: name, items: [] });
+            inp.value = "";
+            saveCatalog();
+            renderCatalog();
+            renderJobs();
+        }
+        function addService() {
+            var catId = document.getElementById("newSvcCat").value;
+            var nameIn = document.getElementById("newSvcName");
+            var unitIn = document.getElementById("newSvcUnit");
+            var priceIn = document.getElementById("newSvcPrice");
+            var name = nameIn.value.trim();
+            var unit = unitIn.value.trim() || "unit";
+            var price = parseNaira(priceIn.value);
+            if (!name) return;
+            for (var i = 0; i < catalog.length; i++) {
+                if (catalog[i].id === catId) {
+                    catalog[i].items.push({ id: "svc_" + Date.now(), name: name, unit: unit, price: price });
+                    break;
+                }
+            }
+            nameIn.value = "";
+            unitIn.value = "";
+            priceIn.value = "";
+            saveCatalog();
+            renderCatalog();
+            renderJobs();
+        }
+        function makeField(labelTxt, val, readonly, fn) {
+            var f = el("div", "field");
+            f.appendChild(el("label", "", labelTxt));
+            var inp = document.createElement("input");
+            inp.type = "number";
+            inp.min = "0";
+            inp.value = val;
+            if (readonly) inp.readOnly = true;
+            if (fn) inp.oninput = fn;
+            f.appendChild(inp);
+            return { f: f, inp: inp };
+        }
+        function renderJobs() {
+            var list = document.getElementById("jobsList");
+            list.innerHTML = "";
+            jobs.forEach(function (j, idx) {
+                var card = el("div", "card");
+                var head = el("div", "job-head");
+                if (j.saved) {
+                    var saved = el("div", "saved-customer");
+                    saved.appendChild(el("strong", "", j.name));
+                    saved.appendChild(el("small", "", j.phone || "No phone number"));
+                    var customerRecord = customerDirectory.find(function (customer) {
+                        return customer.id === j.customerId;
+                    });
+                    if (customerRecord && customerRecord.couponCode) {
+                        saved.appendChild(el("small", "", "Credit Coupon: " + customerRecord.couponCode));
+                    }
+                    head.appendChild(saved);
+                    var edit = el("button", "btn-edit-customer", "Edit");
+                    edit.type = "button";
+                    edit.onclick = function () {
+                        j.saved = false;
+                        j.stage = "name";
+                        j.draftName = j.name;
+                        j.draftPhone = j.phone;
+                        renderJobs();
+                    };
+                    head.appendChild(edit);
+                } else {
+                    var entry = el("div", "customer-entry");
+                    var input = el("input", "name-in");
+                    input.type = j.stage === "phone" ? "tel" : "text";
+                    input.placeholder = j.stage === "phone" ? "Enter phone number" : "Enter customer name";
+                    input.value = j.stage === "phone" ? (j.draftPhone || "") : (j.draftName || "");
+                    input.oninput = function () {
+                        if (j.stage === "phone") j.draftPhone = this.value;
+                        else j.draftName = this.value;
+                        calc();
+                    };
+                    entry.appendChild(input);
+                    var actions = el("div", "customer-actions");
+                    var confirm = el("button", "btn-confirm", "✓");
+                    confirm.type = "button";
+                    confirm.onclick = function () {
+                        if (j.stage === "name") {
+                            var name = (j.draftName || "").trim();
+                            if (!name) {
+                                input.focus();
+                                return;
+                            }
+                            j.stage = "phone";
+                        } else {
+                            var phone = (j.draftPhone || "").trim();
+                            if (!phone) {
+                                input.focus();
+                                return;
+                            }
+                            var normalizedPhone = phone.replace(/\D/g, "");
+                            var normalizedName = (j.draftName || "").trim().toLowerCase();
+                            var match = customerDirectory.find(function (customer) {
+                                var savedPhone = (customer.phone || "").replace(/\D/g, "");
+                                var savedName = (customer.name || "").trim().toLowerCase();
+                                return (normalizedPhone && savedPhone === normalizedPhone) ||
+                                    (normalizedName && savedName === normalizedName);
+                            });
+                            if (match) {
+                                match.name = (j.draftName || "").trim();
+                                match.phone = phone;
+                                if (!match.couponCode) {
+                                    match.couponCode = generateCustomerCoupon(match.name, match.phone);
+                                    couponDirectory.push({
+                                        code: match.couponCode,
+                                        tier: "customer",
+                                        usage: 0,
+                                        referralOnly: true
+                                    });
+                                }
+                                j.customerId = match.id;
+                            } else {
+                                var customerCoupon = generateCustomerCoupon(
+                                    (j.draftName || "").trim(),
+                                    phone
+                                );
+                                var customer = {
+                                    id: "customer_" + Date.now(),
+                                    name: (j.draftName || "").trim(),
+                                    phone: phone,
+                                    couponCode: customerCoupon
+                                };
+                                customerDirectory.push(customer);
+                                couponDirectory.push({
+                                    code: customerCoupon,
+                                    tier: "customer",
+                                    usage: 0,
+                                    referralOnly: true
+                                });
+                                j.customerId = customer.id;
+                            }
+                            j.name = (j.draftName || "").trim();
+                            j.phone = phone;
+                            j.saved = true;
+                            j.stage = "saved";
+                            localStorage.setItem("cyber_customers_v1", JSON.stringify(customerDirectory));
+                            localStorage.setItem("cyber_coupons_v1", JSON.stringify(couponDirectory));
+                        }
+                        renderJobs();
+                        calc();
+                    };
+                    var cancel = el("button", "btn-del", "✕");
+                    cancel.type = "button";
+                    cancel.onclick = function () {
+                        if (j.stage === "phone") {
+                            j.stage = "name";
+                            j.draftPhone = "";
+                        } else {
+                            j.draftName = "";
+                            j.name = "";
+                        }
+                        renderJobs();
+                        calc();
+                    };
+                    actions.appendChild(confirm);
+                    actions.appendChild(cancel);
+                    entry.appendChild(actions);
+                    head.appendChild(entry);
+                }
+                var del = el("button", "btn-del no-print", "✕");
+                del.type = "button";
+                del.onclick = function () {
+                    if (jobs.length === 1) {
+                        jobs[0] = {
+                            name: "", phone: "", draftName: "", draftPhone: "",
+                            stage: "name", saved: false, total: 0, col: 0, copies: 0, extras: []
+                        };
+                    } else {
+                        jobs.splice(idx, 1);
+                    }
+                    renderJobs();
+                };
+                head.appendChild(del);
+                card.appendChild(head);
+                // Add Digital / Extra Cyber Cafe Services to this customer
+                var exBox = el("div", "extra-box no-print");
+                exBox.appendChild(el("h2", "", "Previously Selected Services"));
+                if (j.extras.length > 0) {
+                    var exList = el("div");
+                    exList.style.marginTop = "8px";
+                    j.extras.forEach(function (ex, eIdx) {
+                        var sObj = ex.custom ? ex : getServiceById(ex.svcId);
+                        if (!sObj) return;
+                        var row = el("div", "extra-row selected");
+                        row.appendChild(el("span", "", "• " + sObj.name + " (" + naira(sObj.price) + "/" + sObj.unit + ")"));
+                        var qEdit = document.createElement("input");
+                        qEdit.type = "number";
+                        qEdit.min = "1";
+                        qEdit.value = ex.qty;
+                        qEdit.oninput = function () {
+                            ex.qty = Math.max(1, Number(this.value) || 1);
+                            calc();
+                        };
+                        var rmEx = el("button", "btn-del", "✕");
+                        rmEx.type = "button";
+                        rmEx.onclick = function () {
+                            j.extras.splice(eIdx, 1);
+                            renderCatalog();
+                            renderJobs();
+                        };
+                        row.appendChild(qEdit);
+                        row.appendChild(rmEx);
+                        exList.appendChild(row);
+                    });
+                    exBox.appendChild(exList);
+                } else {
+                    exBox.appendChild(el("p", "pill", "No services selected yet."));
+                }
+                card.appendChild(exBox);
+                list.appendChild(card);
+            });
+            calc();
+        }
+        function addLine(parent, label, amount) {
+            var row = el("div", "line");
+            row.appendChild(el("span", "", label));
+            row.appendChild(el("b", "", naira(amount)));
+            parent.appendChild(row);
+        }
+        function addTextLine(parent, label, text) {
+            var row = el("div", "line");
+            row.appendChild(el("span", "", label));
+            row.appendChild(el("b", "", text));
+            parent.appendChild(row);
+        }
+        function addCouponLine(parent, label, originalAmount, billableAmount) {
+            var row = el("div", "line");
+            row.appendChild(el("span", "", label));
+            var prices = el("b", "discounted-price");
+            var original = el("span", "original-price", naira(originalAmount));
+            var billable = el("span", "billable-price", naira(billableAmount));
+            prices.appendChild(original);
+            prices.appendChild(billable);
+            row.appendChild(prices);
+            parent.appendChild(row);
+        }
+        function calc() {
+            var rBW = getRate("bw");
+            var rCol = getRate("col");
+            var rCopy = getRate("copy");
+            var rBind = getRate("bind");
+            var grand = 0;
+            jobs.forEach(function (j, i) {
+                var bw = Math.max(0, j.total - j.col);
+                var copySets = Math.max(0, j.copies - 1);
+                var cBind = j.copies * rBind;
+                var cBW = j.copies > 0 ? bw * rBW * 1 : 0;
+                var cCol = j.col * rCol * j.copies;
+                var cCopy = bw * rCopy * copySets;
+                var sum = cBind + cBW + cCol + cCopy;
+                var box = document.getElementById("lines-" + i);
+                if (box) box.innerHTML = "";
+                j.extras.forEach(function (ex) {
+                    var sObj = ex.custom ? ex : getServiceById(ex.svcId);
+                    if (!sObj) return;
+                    var lineCost = sObj.price * ex.qty;
+                    sum += lineCost;
+                    if (box) addLine(box, "💻 " + sObj.name + " (" + ex.qty + " × " + naira(sObj.price) + ")", lineCost);
+                });
+                grand += sum;
+                var totalOut = document.getElementById("tot-" + i);
+                if (totalOut) totalOut.textContent = naira(sum);
+            });
+            var discountInput = parseNaira(document.getElementById("directDiscount").value);
+            var discountType = document.getElementById("discountType").value;
+            var directDiscount = discountType === "percent"
+                ? grand * Math.min(100, discountInput) / 100
+                : Math.min(grand, discountInput);
+            var couponMode = document.getElementById("couponMode").value;
+            var cost = parseNaira(document.getElementById("pCost").value);
+            var activeCoupon = couponMode === "retain" ? findActiveCoupon() : null;
+            var activeReferralOnly = activeCoupon &&
+                (activeCoupon.referralOnly || activeCoupon.tier === "customer");
+            var pcts = activeCoupon ? [
+                (Number(activeCoupon.clientPct) || 0) / 100,
+                (Number(activeCoupon.affiliatePct) || 0) / 100
+            ] : [0, 0];
+            var couponClientRate = activeReferralOnly ? 0 : pcts[0];
+            var couponClientDiscount = activeCoupon
+                ? grand * couponClientRate
+                : 0;
+            var payable = Math.max(0, grand - directDiscount - couponClientDiscount);
+            var qualifyingProfit = Math.max(0, payable - cost);
+            var affiliatePayout = couponMode === "retain" ? qualifyingProfit * pcts[1] : 0;
+            var breakdown = document.getElementById("jobBreakdown");
+            if (breakdown) {
+                breakdown.innerHTML = "";
+                jobs.forEach(function (j) {
+                    var bw = Math.max(0, j.total - j.col);
+                    var customerBlock = el("div", "breakdown-customer");
+                    var customerName = j.name.trim();
+                    if (customerName) customerBlock.appendChild(el("h3", "", customerName));
+                    var customerLines = el("div", "lines");
+                    var rBW = getRate("bw");
+                    var rCol = getRate("col");
+                    var rCopy = getRate("copy");
+                    var rBind = getRate("bind");
+                    var copySets = Math.max(0, j.copies - 1);
+                    var customerTotal = 0;
+                    var bindingCost = j.copies * rBind;
+                    var bwCost = j.copies > 0 ? bw * rBW : 0;
+                    var colourCost = j.col * rCol * j.copies;
+                    var photocopyCost = bw * rCopy * copySets;
+                    var customerCouponDiscount = 0;
+                    if (j.copies > 0 || j.total > 0) {
+                        var printServices = [
+                            ["Hard Binding (" + j.copies + " copies)", bindingCost],
+                            ["B&W Print (" + bw + " pages)", bwCost],
+                            ["Colour Pages (" + j.col + ")", colourCost],
+                            ["Photocopy (" + bw + " pages)", photocopyCost]
+                        ];
+                        var customerCouponDiscount = 0;
+                        printServices.forEach(function (serviceLine) {
+                            if (activeCoupon && serviceLine[1] > 0) {
+                                var serviceCouponDiscount = serviceLine[1] * couponClientRate;
+                                customerCouponDiscount += serviceCouponDiscount;
+                                addCouponLine(customerLines, serviceLine[0], serviceLine[1],
+                                    serviceLine[1] - serviceCouponDiscount);
+                            } else {
+                                addLine(customerLines, serviceLine[0], serviceLine[1]);
+                            }
+                        });
+                        customerTotal += bindingCost + bwCost + colourCost + photocopyCost;
+                    }
+                    j.extras.forEach(function (ex) {
+                        var sObj = ex.custom ? ex : getServiceById(ex.svcId);
+                        if (!sObj) return;
+                        var lineCost = sObj.price * ex.qty;
+                        customerTotal += lineCost;
+                        if (activeCoupon) {
+                            var extraCouponDiscount = lineCost * couponClientRate;
+                            customerCouponDiscount += extraCouponDiscount;
+                            addCouponLine(customerLines,
+                                sObj.name + " (" + ex.qty + " × " + naira(sObj.price) + ")",
+                                lineCost, lineCost - extraCouponDiscount);
+                        } else {
+                            addLine(customerLines,
+                                sObj.name + " (" + ex.qty + " × " + naira(sObj.price) + ")",
+                                lineCost);
+                        }
+                    });
+                    customerBlock.appendChild(customerLines);
+                    var total = el("div", "j-total");
+                    var customerShare = grand > 0 ? customerTotal / grand : 0;
+                    var customerDirectDiscount = directDiscount * customerShare;
+                    var customerPayable = Math.max(0, customerTotal - customerDirectDiscount - customerCouponDiscount);
+                    addLine(customerLines, "Gross Service Charges", customerTotal);
+                    addLine(customerLines, "Direct Discount", customerDirectDiscount);
+                    var affiliateCode = activeCoupon ? activeCoupon.code : "";
+                    if (couponMode === "retain" && activeCoupon) {
+                        addLine(customerLines,
+                            "Affiliate Coupon " + (affiliateCode ? "(" + affiliateCode + ") " : "") + "Discount",
+                            customerCouponDiscount);
+                    } else {
+                        addLine(customerLines, "Coupon / Referral Discount (Voided)", 0);
+                    }
+                    total.appendChild(el("span", "", "TOTAL PAYABLE"));
+                    total.appendChild(el("span", "", naira(customerPayable)));
+                    customerBlock.appendChild(total);
+                    breakdown.appendChild(customerBlock);
+                });
+            }
+            document.getElementById("gTotal").textContent = naira(payable);
+            document.getElementById("gSub").textContent =
+                jobs.length + " customer" + (jobs.length > 1 ? "s" : "") +
+                " · Gross " + naira(grand) +
+                " · Discount " + naira(directDiscount);
+            var cost = parseNaira(document.getElementById("pCost").value);
+            var prof = Math.max(0, payable - cost);
+            var disc = activeCoupon ? couponClientDiscount : 0;
+            var pay = activeCoupon ? prof * pcts[1] : 0;
+            var net = prof - disc - pay;
+            document.getElementById("sProf").textContent = naira(prof);
+            document.getElementById("sDisc").textContent = naira(disc);
+            document.getElementById("sPay").textContent = naira(pay);
+            document.getElementById("sNet").textContent = naira(net);
+            var couponSummary = document.getElementById("customerCouponSummary");
+            if (couponSummary) {
+                var affiliateCode = activeCoupon ? activeCoupon.code : "";
+                couponSummary.textContent =
+                    "Gross: " + naira(grand) +
+                    " · Discount: " + naira(directDiscount) +
+                    " · Payable: " + naira(payable) +
+                    " · Coupon: " + (couponMode === "retain" && activeCoupon
+                        ? "Retained" + (affiliateCode ? " · Affiliate Code: " + affiliateCode : "")
+                        : couponMode === "void"
+                            ? "Voided — Affiliate Code Not Applied"
+                            : "Invalid Coupon — Benefits Not Applied");
+            }
+            var adminBreakdown = document.getElementById("adminBreakdown");
+            if (adminBreakdown) {
+                adminBreakdown.innerHTML = "";
+                var block = el("div", "breakdown-customer");
+                block.appendChild(el("h3", "", "Holistic Admin Breakdown"));
+                var lines = el("div", "lines");
+                if (activeCoupon) {
+                    addTextLine(lines, "Affiliate Coupon", activeCoupon.code);
+                    addTextLine(lines, "Coupon Tier", getCouponTierLabel(activeCoupon.tier));
+                    addTextLine(lines, "Coupon Usage Count", String(activeCoupon.usage || 0));
+                } else {
+                    addTextLine(lines, "Affiliate Coupon",
+                        couponMode === "void" ? "Voided" : "Invalid or not found");
+                }
+                addLine(lines, "Gross Service Revenue", grand);
+                addLine(lines, "Direct Discount", directDiscount);
+                addLine(lines, "Payable Customer Total", payable);
+                addLine(lines, "Direct Cost", cost);
+                addLine(lines, "Qualifying Profit", prof);
+                addLine(lines, "Coupon / Client Benefit", disc);
+                addLine(lines, "Affiliate Payout", pay);
+                addLine(lines, "Net Profit", net);
+                block.appendChild(lines);
+                adminBreakdown.appendChild(block);
+            }
+        }
+        function addJob() {
+            jobs.push({
+                name: "", phone: "", draftName: "", draftPhone: "",
+                stage: "name", saved: false, total: 0, col: 0, copies: 0, extras: []
+            });
+            renderJobs();
+        }
+        function renderCustomerSearch() {
+            var area = document.getElementById("customerSearchArea");
+            if (!area) return;
+            area.innerHTML = "";
+            var searchBox = el("div", "customer-search");
+            var input = el("input", "");
+            input.type = "search";
+            input.placeholder = "Search existing customer by name or phone";
+            var newBtn = el("button", "btn btn-blue", "+ New Customer");
+            newBtn.type = "button";
+            newBtn.onclick = function () {
+                addJob();
+            };
+            var results = el("div", "customer-results");
+
+            function updateResults() {
+                results.innerHTML = "";
+                var query = input.value.trim().toLowerCase();
+                if (!query) return;
+                var matches = customerDirectory.filter(function (customer) {
+                    var name = (customer.name || "").toLowerCase();
+                    var phone = (customer.phone || "").replace(/\D/g, "");
+                    var phoneQuery = query.replace(/\D/g, "");
+                    return name.indexOf(query) >= 0 ||
+                        (phoneQuery && phone.indexOf(phoneQuery) >= 0);
+                }).slice(0, 8);
+                matches.forEach(function (customer) {
+                    var row = el("div", "customer-result");
+                    var identity = el("div", "");
+                    identity.appendChild(el("strong", "", customer.name));
+                    identity.appendChild(el("small", "", customer.phone || "No phone number"));
+                    var select = el("button", "btn btn-dark", "Select");
+                    select.type = "button";
+                    select.onclick = function () {
+                        var existingJob = jobs.find(function (job) {
+                            return job.customerId === customer.id;
+                        });
+                        if (existingJob) {
+                            input.value = "";
+                            updateResults();
+                            return;
+                        }
+                        var job = {
+                            name: customer.name,
+                            phone: customer.phone,
+                            draftName: customer.name,
+                            draftPhone: customer.phone,
+                            stage: "saved",
+                            saved: true,
+                            customerId: customer.id,
+                            total: 0,
+                            col: 0,
+                            copies: 0,
+                            extras: []
+                        };
+                        jobs.push(job);
+                        input.value = "";
+                        renderJobs();
+                        updateResults();
+                        calc();
+                    };
+                    row.appendChild(identity);
+                    row.appendChild(select);
+                    results.appendChild(row);
+                });
+                if (matches.length === 0) {
+                    results.appendChild(el("p", "pill", "No existing customer found."));
+                }
+            }
+            input.oninput = updateResults;
+            searchBox.appendChild(input);
+            searchBox.appendChild(newBtn);
+            searchBox.appendChild(results);
+            area.appendChild(searchBox);
+        }
+        var wizardStep = 1;
+        function openWizard() {
+            var overlay = document.getElementById("quoteWizard");
+            overlay.classList.add("open");
+            quoteCouponRecorded = false;
+            showWizardStep(1);
+        }
+        function showBreakdownView(view) {
+            var customerView = document.getElementById("customerBreakdownView");
+            var adminView = document.getElementById("adminBreakdownView");
+            var tabs = document.querySelectorAll(".breakdown-tab");
+            customerView.classList.toggle("active", view === "customer");
+            adminView.classList.toggle("active", view === "admin");
+            tabs.forEach(function (tab, index) {
+                tab.classList.toggle("active", (view === "customer" && index === 0) || (view === "admin" && index === 1));
+            });
+        }
+        function closeWizard() {
+            document.getElementById("quoteWizard").classList.remove("open");
+            document.getElementById("finishedBanner").classList.remove("show");
+            document.getElementById("wizardTitle").textContent = "New Service Quote";
+        }
+        function closeOnBackdrop(event) {
+            if (event.target.id === "quoteWizard") closeWizard();
+        }
+        function showWizardStep(step) {
+            wizardStep = step;
+            document.getElementById("finishedBanner").classList.remove("show");
+            document.getElementById("wizardTitle").textContent =
+                step === 3 ? "Final Quote Breakdown" : "New Service Quote";
+            document.getElementById("wizardNext").onclick = wizardNext;
+            for (var i = 1; i <= 3; i++) {
+                document.getElementById("pane" + i).classList.toggle("active", i === step);
+                var progress = document.getElementById("progress" + i);
+                progress.classList.toggle("active", i === step);
+                progress.classList.toggle("done", i < step);
+            }
+            document.getElementById("wizardBack").style.visibility = step === 1 ? "hidden" : "visible";
+            document.getElementById("wizardNext").textContent =
+                step === 1 ? "Next: Customer" :
+                step === 2 ? "Next: Breakdown" : "Finish Quote";
+            if (step === 2) {
+                renderCustomerSearch();
+                renderJobs();
+            }
+            if (step === 3) calc();
+            document.querySelector(".wizard-modal").scrollTop = 0;
+        }
+        function wizardNext() {
+            if (wizardStep < 3) {
+                showWizardStep(wizardStep + 1);
+            } else {
+                finishWizard();
+            }
+        }
+        function finishWizard() {
+            calc();
+            if (!quoteCouponRecorded && document.getElementById("couponMode").value === "retain") {
+                var coupon = findActiveCoupon();
+                if (coupon) {
+                    coupon.usage = (Number(coupon.usage) || 0) + 1;
+                    localStorage.setItem("cyber_coupons_v1", JSON.stringify(couponDirectory));
+                    quoteCouponRecorded = true;
+                    validateCoupon(false);
+                    calc();
+                }
+            }
+            document.getElementById("finishedBanner").classList.add("show");
+            document.getElementById("wizardTitle").textContent = "Finished Quote";
+            document.getElementById("wizardNext").textContent = "Close Quote";
+            document.getElementById("wizardNext").onclick = closeWizard;
+            document.querySelector(".wizard-modal").scrollTop = 0;
+        }
+        function wizardBack() {
+            if (wizardStep > 1) showWizardStep(wizardStep - 1);
+        }
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") closeWizard();
+        });
+        if (!localStorage.getItem("cyber_coupons_v1")) {
+            localStorage.setItem("cyber_coupons_v1", JSON.stringify(couponDirectory));
+        }
+        renderCatalog();
+        renderCustomerSearch();
+        renderJobs();
+        validateCoupon(false);
+    </script>
+</body>
+
+</html>

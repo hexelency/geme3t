@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Services & Categories</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById("shell").innerHTML = nav("services") + `
+      <main class="main"><div class="container">
+        <div class="topbar"><h1>Services & Categories</h1></div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field"><label>Category Name</label><input id="categoryName" /></div>
+            <div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="addCategory()">Add Category</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <input class="search" id="catalogSearch" placeholder="Search categories or services" oninput="render()" />
+          <div id="catalog"></div>
+        </div>
+      </div></main>`;
+
+    let catalog = [];
+    async function load() {
+      catalog = await api("/api/catalog");
+      render();
+    }
+    async function addCategory() {
+      const input = document.getElementById("categoryName");
+      if (!input.value.trim()) return;
+      await api("/api/categories", { method:"POST", body:JSON.stringify({ name:input.value }) });
+      input.value = "";
+      load();
+    }
+    async function deleteCategory(id) {
+      if (!confirm("Delete this category and all its services?")) return;
+      await api("/api/categories/" + id, { method:"DELETE" });
+      load();
+    }
+    async function saveService(categoryId, serviceId, row) {
+      const name = row.querySelector("[data-name]").value.trim();
+      const unit = row.querySelector("[data-unit]").value.trim() || "unit";
+      const price = Math.max(0, Number(row.querySelector("[data-price]").value) || 0);
+      if (serviceId) {
+        await api("/api/services/" + serviceId, { method:"PATCH", body:JSON.stringify({ name, unit, price }) });
+      } else {
+        await api("/api/services", { method:"POST", body:JSON.stringify({ category_id:categoryId, name, unit, price }) });
+      }
+      load();
+    }
+    async function deleteService(id) {
+      if (!confirm("Delete this service?")) return;
+      await api("/api/services/" + id, { method:"DELETE" });
+      load();
+    }
+    function render() {
+      const query = document.getElementById("catalogSearch").value.trim().toLowerCase();
+      const box = document.getElementById("catalog");
+      box.innerHTML = "";
+      let visible = 0;
+      catalog.forEach(category => {
+        const items = category.items.filter(item =>
+          !query || category.name.toLowerCase().includes(query) ||
+          item.name.toLowerCase().includes(query) || item.unit.toLowerCase().includes(query)
+        );
+        if (query && items.length === 0) return;
+        visible++;
+        const el = document.createElement("div");
+        el.className = "category";
+        el.innerHTML = `<div class="category-head"><h3>${category.name}</h3>
+          <button class="btn btn-danger" onclick="deleteCategory(${category.id})">Delete Category</button></div>`;
+        items.forEach(service => {
+          const row = document.createElement("div");
+          row.className = "service-row";
+          row.innerHTML = `
+            <input data-name value="${service.name.replace(/"/g,"&quot;")}" />
+            <input data-unit value="${service.unit.replace(/"/g,"&quot;")}" />
+            <input data-price type="number" min="0" value="${service.price}" />
+            <button class="btn btn-primary" onclick="saveService(${category.id},${service.id},this.closest('.service-row'))">Save</button>
+            <button class="btn btn-danger" onclick="deleteService(${service.id})">Delete</button>`;
+          el.appendChild(row);
+        });
+        const newRow = document.createElement("div");
+        newRow.className = "service-row";
+        newRow.innerHTML = `
+          <input data-name placeholder="New service name" />
+          <input data-unit value="unit" />
+          <input data-price type="number" min="0" value="0" />
+          <button class="btn btn-primary" onclick="saveService(${category.id},null,this.closest('.service-row'))">Add</button>
+          <span></span>`;
+        el.appendChild(newRow);
+        box.appendChild(el);
+      });
+      if (!visible) box.innerHTML = `<div class="empty">No categories or services found.</div>`;
+    }
+    load();
+  </script>
+</body>
+</html>

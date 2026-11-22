@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Print & Bind Quote & Affiliate Calculator</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --primary: #1e293b;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --green-soft: #ecfdf5;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px 14px 50px;
+      line-height: 1.45;
+    }
+
+    .container {
+      max-width: 740px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-size: 21px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 540px) {
+
+      .grid-4,
+      .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    .field input[readonly] {
+      background: #f1f5f9;
+      color: var(--muted);
+    }
+
+    .job-head {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .name-in {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border: 1px dashed #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: var(--primary);
+    }
+
+    .btn-del {
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      border-radius: 6px;
+      padding: 0 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .pill {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 10px 0;
+      font-weight: 500;
+    }
+
+    .lines {
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+
+    .line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 4px 0;
+    }
+
+    .line b {
+      font-weight: 600;
+    }
+
+    .j-total {
+      display: flex;
+      justify-content: space-between;
+      border-top: 2px solid var(--border);
+      margin-top: 8px;
+      padding-top: 8px;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-blue {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-gray {
+      background: #e2e8f0;
+      color: var(--primary);
+    }
+
+    .grand {
+      background: var(--primary);
+      color: #fff;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .grand-amt {
+      font-size: 28px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    .aff {
+      background: var(--green-soft);
+      border: 1px solid #a7f3d0;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .aff h3 {
+      font-size: 14px;
+      color: #065f46;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      background: #fff;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #d1fae5;
+    }
+
+    .stat small {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .stat strong {
+      font-size: 15px;
+      color: #065f46;
+    }
+
+    .note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 14px;
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+
+      body {
+        background: #fff;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="badge">Print &amp; Bind · Quote &amp; Affiliate Costing</div>
+      <h1>📄 Print &amp; Bind Quote</h1>
+      <p class="sub">1 B&amp;W print + remaining copies photocopied + colour pages &amp; hard binding</p>
+      <div class="grid-4 no-print">
+        <div class="field"><label>B&amp;W Print (₦)</label><input type="number" id="rBW" value="100" oninput="calc()" />
+        </div>
+        <div class="field"><label>Colour Page (₦)</label><input type="number" id="rCol" value="200" oninput="calc()" />
+        </div>
+        <div class="field"><label>Photocopy (₦)</label><input type="number" id="rCopy" value="50" oninput="calc()" />
+        </div>
+        <div class="field"><label>Binding (₦)</label><input type="number" id="rBind" value="3000" oninput="calc()" />
+        </div>
+      </div>
+    </div>
+
+    <div id="list"></div>
+
+    <div class="actions no-print">
+      <button class="btn btn-blue" type="button" onclick="add()">+ Add Student / Client</button>
+      <button class="btn btn-gray" type="button" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+
+    <div class="grand">
+      <div>
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;">Grand Total</div>
+        <div style="font-size:13px;color:#cbd5e1;" id="gSub">2 students · 3 hard bind copies each</div>
+      </div>
+      <div class="grand-amt" id="gTotal">₦0</div>
+    </div>
+
+    <div class="aff no-print">
+      <h3>🤝 Affiliate &amp; Qualifying Profit Split (Up to 40% Cap)</h3>
+      <div class="grid-3" style="margin-bottom:10px;">
+        <div class="field"><label>Affiliate Code</label><input type="text" id="aCode" value="ADA10" /></div>
+        <div class="field"><label>Direct Cost (₦)</label><input type="number" id="pCost" value="22000"
+            oninput="calc()" /></div>
+        <div class="field">
+          <label>Tier Split</label>
+          <select id="aTier" onchange="calc()">
+            <option value="0.10,0.15">Tier 1: 10% Client / 15% Aff (25%)</option>
+            <option value="0.10,0.20">Tier 2: 10% Client / 20% Aff (30%)</option>
+            <option value="0.15,0.25" selected>Tier 3: 15% Client / 25% Aff (40%)</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-4">
+        <div class="stat"><small>Qualifying Profit</small><strong id="sProf">₦0</strong></div>
+        <div class="stat"><small>Client Discount</small><strong id="sDisc">₦0</strong></div>
+        <div class="stat"><small>Affiliate Payout</small><strong id="sPay">₦0</strong></div>
+        <div class="stat"><small>Your Net Profit</small><strong id="sNet">₦0</strong></div>
+      </div>
+    </div>
+
+    <div class="note">All prices in Nigerian Naira (₦) · 1 B&amp;W original print + remaining copies photocopied per job
+    </div>
+  </div>
+
+  <script>
+    var jobs = [
+      { name: "OPENE PRECIOUS OLUCHI", total: 109, col: 1, copies: 3 },
+      { name: "OKAFOR PRECIOUS ONYINYECHUKWU", total: 66, col: 1, copies: 3 }
+    ];
+
+    function naira(v) {
+      return "₦" + Math.round(v).toLocaleString("en-NG");
+    }
+
+    function el(tag, cls, text) {
+      var node = document.createElement(tag);
+      if (cls) node.className = cls;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function makeInput(labelTxt, val, readonly, onChangeFn) {
+      var wrap = el("div", "field");
+      wrap.appendChild(el("label", "", labelTxt));
+      var inp = document.createElement("input");
+      inp.type = "number";
+      inp.min = "0";
+      inp.value = val;
+      if (readonly) inp.readOnly = true;
+      if (onChangeFn) inp.oninput = onChangeFn;
+      wrap.appendChild(inp);
+      return { wrap: wrap, inp: inp };
+    }
+
+    function render() {
+      var list = document.getElementById("list");
+      list.innerHTML = "";
+      jobs.forEach(function (j, i) {
+        var card = el("div", "card");
+        var head = el("div", "job-head");
+        var nameIn = el("input", "name-in");
+        nameIn.type = "text";
+        nameIn.value = j.name;
+        nameIn.oninput = function () { j.name = this.value; };
+        head.appendChild(nameIn);
+
+        if (jobs.length > 1) {
+          var del = el("button", "btn-del no-print", "✕");
+          del.type = "button";
+          del.onclick = function () { jobs.splice(i, 1); render(); };
+          head.appendChild(del);
+        }
+        card.appendChild(head);
+
+        var grid = el("div", "grid-4 no-print");
+        var fTot = makeInput("Total Pages", j.total, false, function () { j.total = Number(this.value) || 0; calc(); });
+        var fCol = makeInput("Colour Pages", j.col, false, function () { j.col = Number(this.value) || 0; calc(); });
+        var fCop = makeInput("Copies", j.copies, false, function () { j.copies = Number(this.value) || 0; calc(); });
+        var fBw = makeInput("B&W Pages", 0, true, null);
+        fBw.inp.id = "bw-" + i;
+        grid.appendChild(fTot.wrap);
+        grid.appendChild(fCol.wrap);
+        grid.appendChild(fCop.wrap);
+        grid.appendChild(fBw.wrap);
+        card.appendChild(grid);
+
+        var pill = el("div", "pill");
+        pill.id = "pill-" + i;
+        card.appendChild(pill);
+
+        var lines = el("div", "lines");
+        lines.id = "lines-" + i;
+        card.appendChild(lines);
+
+        var totRow = el("div", "j-total");
+        totRow.appendChild(el("span", "", "TOTAL"));
+        var totVal = el("span", "", "₦0");
+        totVal.id = "tot-" + i;
+        totRow.appendChild(totVal);
+        card.appendChild(totRow);
+
+        list.appendChild(card);
+      });
+      calc();
+    }
+
+    function addLine(parent, label, amount) {
+      var row = el("div", "line");
+      row.appendChild(el("span", "", label));
+      row.appendChild(el("b", "", naira(amount)));
+      parent.appendChild(row);
+    }
+
+    function calc() {
+      var rBW = Number(document.getElementById("rBW").value) || 0;
+      var rCol = Number(document.getElementById("rCol").value) || 0;
+      var rCopy = Number(document.getElementById("rCopy").value) || 0;
+      var rBind = Number(document.getElementById("rBind").value) || 0;
+      var grand = 0;
+      jobs.forEach(function (j, i) {
+        var bw = Math.max(0, j.total - j.col);
+        var copySets = Math.max(0, j.copies - 1);
+        var cBind = j.copies * rBind;
+        var cBW = bw * rBW * 1;
+        var cCol = j.col * rCol * j.copies;
+        var cCopy = bw * rCopy * copySets;
+        var sum = cBind + cBW + cCol + cCopy;
+        grand += sum;
+        document.getElementById("bw-" + i).value = bw;
+        document.getElementById("pill-" + i).textContent = bw + " B&W pages · 🎨 " + j.col + " colour · 📋 " + j.copies + " copies";
+        var box = document.getElementById("lines-" + i);
+        box.innerHTML = "";
+        addLine(box, "📘 Hard Binding (" + j.copies + " copies)", cBind);
+        addLine(box, "🖨 B&W Print (" + bw + " × " + naira(rBW) + " × 1)", cBW);
+        addLine(box, "🎨 Colour Pages (" + j.col + " × " + naira(rCol) + " × " + j.copies + ")", cCol);
+        addLine(box, "📄 Photocopy (" + bw + " × " + naira(rCopy) + " × " + copySets + ")", cCopy);
+        document.getElementById("tot-" + i).textContent = naira(sum);
+      });
+      document.getElementById("gTotal").textContent = naira(grand);
+      document.getElementById("gSub").textContent = jobs.length + " student" + (jobs.length > 1 ? "s" : "") + " · Live itemized quote";
+      var cost = Number(document.getElementById("pCost").value) || 0;
+      var pcts = document.getElementById("aTier").value.split(",").map(Number);
+      var prof = Math.max(0, grand - cost);
+      var disc = prof * pcts[0];
+      var pay = prof * pcts[1];
+      var net = prof - disc - pay;
+      document.getElementById("sProf").textContent = naira(prof);
+      document.getElementById("sDisc").textContent = naira(disc);
+      document.getElementById("sPay").textContent = naira(pay);
+      document.getElementById("sNet").textContent = naira(net);
+    }
+    function add() {
+      jobs.push({ name: "NEW STUDENT NAME", total: 80, col: 1, copies: 3 });
+      render();
+    }
+    render();
+  </script>
+</body>
+
+</html>

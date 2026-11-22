@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sales Reports</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById("shell").innerHTML = nav("operations") + `
+      <main class="main"><div class="container">
+        <div class="topbar"><h1>Sales Reports</h1>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-gray" onclick="exportReport('pdf')">Export PDF</button>
+            <button class="btn btn-gray" onclick="exportReport('docx')">Export Word</button>
+            <button class="btn btn-gray" onclick="exportReport('xlsx')">Export Excel</button>
+            <button class="btn btn-primary" onclick="closeDay()">Close Current Day</button>
+          </div>
+        </div>
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Automatic day close</strong><br><small>At 12:00 AM, the current day is closed automatically.</small></div>
+          <div><strong id="dayCloseCountdown" style="font-size:22px">--:--:--</strong></div>
+        </div>
+        <div class="card">
+          <div class="grid-4">
+            <div class="field"><label>Period</label><select id="period" onchange="loadOperations()"><option value="week">Week</option><option value="month">Month</option><option value="year">Year</option></select></div>
+            <div class="field"><label>Date in Period</label><input id="anchorDate" type="date" onchange="loadOperations()" /></div>
+            <div class="field"><label>Service Status</label><select id="statusFilter" onchange="loadOperations()"><option value="all">All Services</option><option value="pending">Pending</option><option value="completed">Completed</option></select></div>
+            <div class="field"><label>Search</label><input id="operationSearch" placeholder="Customer or service" oninput="loadOperations()" /></div>
+          </div>
+        </div>
+        <div class="grid-4" id="operationStats"></div>
+        <div class="card" style="margin-top:12px">
+          <h3 id="periodLabel"></h3>
+          <table class="table"><thead><tr>
+            <th><button class="btn btn-gray" onclick="sortItems('created_at')">Date</button></th>
+            <th><button class="btn btn-gray" onclick="sortItems('customer_name')">Customer</button></th>
+            <th><button class="btn btn-gray" onclick="sortItems('name')">Service</button></th>
+            <th>Quantity</th>
+            <th><button class="btn btn-gray" onclick="sortItems('line_total')">Amount</button></th>
+            <th><button class="btn btn-gray" onclick="sortItems('status')">Status</button></th>
+            <th>Actions</th>
+          </tr></thead><tbody id="operationRows"></tbody></table>
+        </div>
+      </div></main>`;
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="modal-overlay" id="operationModal" onclick="closeOperationModal(event)">
+        <div class="quote-modal" role="dialog" aria-modal="true" style="max-width:760px">
+          <div class="modal-head"><div class="modal-title-row"><h2>Service Details</h2><button class="btn btn-gray" onclick="closeOperationModal()">Close</button></div></div>
+          <div class="modal-body" id="operationDetails"></div>
+        </div>
+      </div>`);
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="modal-overlay" id="paymentModal" onclick="closePaymentModal(event)">
+        <div class="quote-modal" role="dialog" aria-modal="true" style="max-width:560px">
+          <div class="modal-head"><div class="modal-title-row"><h2>Complete Payment</h2><button class="btn btn-gray" onclick="closePaymentModal()">Close</button></div></div>
+          <div class="modal-body">
+            <p>Select all payment channels used for this transaction.</p>
+            <div class="grid-3">
+              <div class="field"><label><input type="checkbox" id="paymentCash" value="cash"> Cash</label><input id="cashAmount" type="number" min="0" value="0" placeholder="Cash amount" /></div>
+              <div class="field"><label><input type="checkbox" id="paymentTransfer" value="transfer"> Transfer</label><input id="transferAmount" type="number" min="0" value="0" placeholder="Transfer amount" /></div>
+              <div class="field" id="couponRedemptionOption"><label><input type="checkbox" id="paymentCoupon" value="coupon_redemption"> Customer Coupon Redemption</label><input id="couponRedemptionCode" placeholder="Redemption coupon code" /><input id="redemptionAmount" type="number" min="0" value="0" placeholder="Redemption amount" /></div>
+            </div>
+            <small id="paymentStatus" style="display:block;margin-top:10px;color:var(--muted)"></small>
+            <div style="margin-top:14px"><button class="btn btn-primary" id="confirmPaymentButton">Mark Completed</button></div>
+          </div>
+        </div>
+      </div>`);
+
+    let operations = [];
+    let sortField = "created_at";
+    let sortAscending = false;
+    let lastAutomaticClose = "";
+    document.getElementById("anchorDate").value = new Date().toISOString().slice(0, 10);
+
+    async function loadOperations() {
+      const period = document.getElementById("period").value;
+      const anchor = document.getElementById("anchorDate").value;
+      const status = document.getElementById("statusFilter").value;
+      const search = document.getElementById("operationSearch").value.trim();
+      const params = new URLSearchParams({ period, anchor, status, search });
+      const data = await api("/api/operations?" + params.toString());
+      operations = data.items;
+      document.getElementById("periodLabel").textContent =
+        `${period[0].toUpperCase() + period.slice(1)}: ${data.start} to ${data.end}`;
+      document.getElementById("operationStats").innerHTML = `
+        <div class="stat"><small>Total Services</small><strong>${data.total}</strong></div>
+        <div class="stat"><small>Pending</small><strong>${data.pending}</strong></div>
+        <div class="stat"><small>Completed</small><strong>${data.completed}</strong></div>
+        <div class="stat"><small>Period Revenue</small><strong>${naira(data.items.reduce((sum, item) => sum + item.line_total, 0))}</strong></div>`;
+      renderOperations();
+    }
+    function sortItems(field) {
+      if (sortField === field) sortAscending = !sortAscending;
+      else {
+        sortField = field;
+        sortAscending = true;
+      }
+      renderOperations();
+    }
+    function renderOperations() {
+      const sorted = [...operations].sort((a, b) => {
+        let av = a[sortField] ?? "";
+        let bv = b[sortField] ?? "";
+        if (sortField === "line_total") return sortAscending ? av - bv : bv - av;
+        av = String(av).toLowerCase();
+        bv = String(bv).toLowerCase();
+        return sortAscending ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      document.getElementById("operationRows").innerHTML = sorted.map(item => `
+        <tr>
+          <td>${item.created_at.slice(0, 10)}</td>
+          <td>${item.customer_name || "Guest"}<br><small>${item.customer_phone || ""}</small></td>
+          <td>${item.name}</td>
+          <td>${item.quantity} ${item.unit}</td>
+          <td>${naira(item.line_total)}</td>
+          <td><span class="badge">${item.status === "completed" ? "Completed" : "Pending"}</span></td>
+          <td>${item.status === "completed"
+            ? ""
+            : `<button class="btn btn-primary" onclick="openPaymentModal(${item.id})">Mark Completed</button>`}</td>
+          <td><button class="btn btn-gray" onclick="openOperationDetails(${item.id})">Details</button></td>
+        </tr>`).join("") ||
+        `<tr><td colspan="7" class="empty">No services found for this period.</td></tr>`;
+    }
+    async function openPaymentModal(id) {
+      const item = await api("/api/operations/items/" + id + "/details");
+      document.getElementById("paymentCash").checked = false;
+      document.getElementById("paymentTransfer").checked = false;
+      document.getElementById("paymentCoupon").checked = false;
+      document.getElementById("cashAmount").value = "0";
+      document.getElementById("transferAmount").value = "0";
+      document.getElementById("redemptionAmount").value = "0";
+      document.getElementById("couponRedemptionCode").value = item.customer_coupon_code || "";
+      const prospectiveCount = Number(item.service_count || 0) + (Number(item.quantity) || 1);
+      const prospectiveBalance = Number(item.prospective_credit_balance || item.credit_balance || 0);
+      const eligible = item.customer_id && item.referral_only &&
+        prospectiveCount > Number(item.redemption_threshold || 3);
+      document.getElementById("paymentCoupon").disabled = !eligible;
+      document.getElementById("couponRedemptionOption").style.opacity = eligible ? "1" : ".55";
+      document.getElementById("paymentStatus").textContent = eligible
+        ? `Eligible balance: ₦${prospectiveBalance.toLocaleString("en-NG")} · ${prospectiveCount} services completed`
+        : `Not eligible: service count must exceed ${item.redemption_threshold || 3}.`;
+      document.getElementById("confirmPaymentButton").onclick = () => completeWithPayments(id);
+      document.getElementById("paymentModal").classList.add("open");
+    }
+    async function completeWithPayments(id) {
+      const channels = ["paymentCash","paymentTransfer","paymentCoupon"]
+        .filter(control => document.getElementById(control).checked)
+        .map(control => document.getElementById(control).value);
+      if (!channels.length) {
+        document.getElementById("paymentStatus").textContent = "Select at least one payment channel.";
+        document.getElementById("paymentStatus").style.color = "var(--danger)";
+        return;
+      }
+      const cashAmount = Math.max(0, Number(document.getElementById("cashAmount").value) || 0);
+      const transferAmount = Math.max(0, Number(document.getElementById("transferAmount").value) || 0);
+      const redemptionAmount = Math.max(0, Number(document.getElementById("redemptionAmount").value) || 0);
+      const couponCode = document.getElementById("couponRedemptionCode").value.trim();
+      try {
+        await api("/api/operations/items/" + id, {
+          method:"PATCH",
+          body:JSON.stringify({
+            status:"completed",
+            payment_channels:channels,
+            cash_amount:cashAmount,
+            transfer_amount:transferAmount,
+            coupon_code:couponCode,
+            redemption_amount:redemptionAmount
+          })
+        });
+        closePaymentModal();
+        loadOperations();
+      } catch (error) {
+        document.getElementById("paymentStatus").textContent = error.message;
+        document.getElementById("paymentStatus").style.color = "var(--danger)";
+      }
+    }
+    function closePaymentModal(event) {
+      if (!event || event.target.id === "paymentModal") {
+        document.getElementById("paymentModal").classList.remove("open");
+      }
+    }
+    async function openOperationDetails(id) {
+      const item = await api("/api/operations/items/" + id + "/details");
+      document.getElementById("operationDetails").innerHTML = `
+        <div class="grid-3">
+          <div class="stat"><small>Quote</small><strong>#${item.quote_id}</strong></div>
+          <div class="stat"><small>Status</small><strong>${item.status === "completed" ? "Completed" : "Pending"}</strong></div>
+          <div class="stat"><small>Coupon Used</small><strong>${item.coupon_code || "None"}</strong></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="line"><span>Customer</span><b>${item.customer_name || "Guest"}</b></div>
+          <div class="line"><span>Phone</span><b>${item.customer_phone || "-"}</b></div>
+          <div class="line"><span>Credit Balance</span><b>${naira(item.credit_balance || 0)}</b></div>
+          <div class="line"><span>Credit Score</span><b>${item.credit_score || 0}</b></div>
+          <div class="line"><span>Service Entered</span><b>${item.created_at}</b></div>
+          <div class="line"><span>Service Closed</span><b>${item.completed_at || "-"}</b></div>
+          <div class="line"><span>Carry-forward Date</span><b>${item.carryover_date || "-"}</b></div>
+          <div class="line"><span>Payment Channels</span><b>${item.payment_channels ? item.payment_channels.split(",").join(", ") : "-"}</b></div>
+          <div class="line"><span>Coupon Redemption</span><b>${item.coupon_redemption ? "Yes" : "No"}</b></div>
+          <div class="line"><span>Cash Amount</span><b>${naira(item.cash_amount || 0)}</b></div>
+          <div class="line"><span>Transfer Amount</span><b>${naira(item.transfer_amount || 0)}</b></div>
+          <div class="line"><span>Redemption Amount</span><b>${naira(item.redemption_amount || 0)}</b></div>
+        </div>
+        <div class="card">
+          <h3>${item.name}</h3>
+          <div class="line"><span>Quantity</span><b>${item.quantity} ${item.unit}</b></div>
+          <div class="line"><span>Gross Service Amount</span><b>${naira(item.line_total)}</b></div>
+          <div class="line"><span>Allocated Discount</span><b>${naira(item.direct_discount_share)}</b></div>
+          <div class="line"><span>Allocated Direct Cost</span><b>${naira(item.direct_cost_share)}</b></div>
+          <div class="line"><span>Allocated Payable</span><b>${naira(item.payable_share)}</b></div>
+          <div class="line"><span><strong>Estimated Net Profit</strong></span><b>${naira(item.net_profit_share)}</b></div>
+          <div class="line"><span>Customer Credit (${item.customer_credit_pct || 5}%)</span><b>${naira(item.credit_earned || 0)}</b></div>
+          <div class="line"><span>Quote Net Profit</span><b>${naira(item.net_profit)}</b></div>
+          <div class="line"><span>Affiliate Commission</span><b>${naira(item.commission_earned)}</b></div>
+        </div>`;
+      document.getElementById("operationModal").classList.add("open");
+    }
+    function closeOperationModal(event) {
+      if (!event || event.target.id === "operationModal") {
+        document.getElementById("operationModal").classList.remove("open");
+      }
+    }
+    async function closeDay(manual = true) {
+      if (manual && !confirm("Close the selected day and keep unfinished services pending?")) return;
+      const date = manual
+        ? (document.getElementById("anchorDate").value || new Date().toISOString().slice(0, 10))
+        : new Date().toLocaleDateString("en-CA");
+      const result = await api("/api/operations/close-day", { method:"POST", body:JSON.stringify({ date }) });
+      if (manual) alert(`Day closed. ${result.pending_count} pending service${result.pending_count === 1 ? "" : "s"} carried to ${result.next_date}.`);
+      loadOperations();
+    }
+    function exportReport(format) {
+      const period = document.getElementById("period").value;
+      const anchor = document.getElementById("anchorDate").value;
+      const params = new URLSearchParams({ period, anchor, format });
+      window.location.href = "/api/operations/report?" + params.toString();
+    }
+    function updateDayCloseCountdown() {
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+      const remaining = Math.max(0, midnight - now);
+      const totalSeconds = Math.floor(remaining / 1000);
+      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+      const seconds = String(totalSeconds % 60).padStart(2, "0");
+      document.getElementById("dayCloseCountdown").textContent = `${hours}:${minutes}:${seconds}`;
+      const today = now.toLocaleDateString("en-CA");
+      if (remaining <= 1000 && lastAutomaticClose !== today) {
+        lastAutomaticClose = today;
+        closeDay(false);
+      }
+    }
+    updateDayCloseCountdown();
+    setInterval(updateDayCloseCountdown, 1000);
+    loadOperations();
+  </script>
+</body>
+</html>
